@@ -1,13 +1,16 @@
 # History files
-.Rhistory
-.Rapp.history
+lib/R/.Rhistory
+lib/R/.Rapp.history
 
 # Example code in package build process
-*-Ex.R
+/lib/R/*-Ex.R
 
 # RStudio files
-.Rproj.user/
+/lib/R/.Rproj.user/
 
 # produced vignettes
-vignettes/*.html
-vignettes/*.pdf
+lib/R/vignettes/*.html
+lib/R/vignettes/*.pdf
+
+# uncompressed config file
+config.json

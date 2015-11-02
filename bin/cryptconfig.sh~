@@ -1,0 +1,48 @@
+#encrypt with public key
+openssl rsautl -encrypt -inkey $1 -pubin -in config.json -out config.json.enc
+
+#decrypt with private key
+openssl rsautl -decrypt -inkey $1 -in config.json.enc -out config.json
+
+ENCRYPT = false;
+DECRYPT = false;
+
+while [[ $# > 0 ]]
+do
+key="$1"
+
+case $key in
+    -encrypt)
+    ENCRYPT=true
+    ;;
+    -decrypt)
+    DECRYPT=true
+    ;;
+    -k|--key)
+    KEYFILE="$2"
+    shift # past argument
+    ;;
+    -l|--lib)
+    LIBPATH="$2"
+    shift # past argument
+    ;;
+    --default)
+    DEFAULT=YES
+    ;;
+    *)
+            # unknown option
+    ;;
+esac
+shift # past argument or value
+done
+
+if [ $ENCRYPT = false ] && [ $DECRYPT = false ]; 
+   then echo "USAGE: cryptconfig -e || --encrypt ||  -d || --decrypt -k path/to/keyfile"; 
+else 
+     echo "var is set to '$var'"; 
+fi
+if [ -z "$KEYFILE"]; 
+   then echo "USAGE: cryptconfig -e || --encrypt ||  -d || --decrypt -k path/to/keyfile"; 
+else 
+     echo "var is set to '$var'"; 
+fi
