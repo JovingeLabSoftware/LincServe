@@ -14,3 +14,6 @@ lib/R/vignettes/*.pdf
 
 # uncompressed config file
 config.json
+
+# temp files
+*~
