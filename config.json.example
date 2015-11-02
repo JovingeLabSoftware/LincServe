@@ -1,0 +1,7 @@
+{
+  "version": 1.0,
+  "couch_url": "http://localhost",
+  "couch_port": 8091,
+  "couch_user": username,
+  "couch_password": password
+}

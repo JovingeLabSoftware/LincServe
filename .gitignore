@@ -17,3 +17,4 @@ config.json
 
 # temp files
 *~
+.Rproj.user
