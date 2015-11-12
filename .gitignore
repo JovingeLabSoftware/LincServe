@@ -19,6 +19,9 @@ config.json
 *~
 .Rproj.user
 
+# crash files
+erl_crash*
+
 # Logs
 logs
 *.log
