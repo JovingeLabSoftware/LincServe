@@ -1,28 +1,11 @@
-library(rhdf5)
-#library(GEOquery)
+library(rjson)
+library(GEOquery)
 # detach just in case to prevent biobase content overriding httr content
 tryCatch({detach('package:httr')}, error = function(e) {})
 library(httr)
-tryCatch({detach('package:rjson')}, error = function(e) {})
-library(rjson)
-
 
 config <- fromJSON(file="../../config.json")
 url <- paste(config$couch_url, ":", config$couch_port, "/query/service", sep="")
-
-# careful now...
-flush <- function() {
-  cat("Are you sure you want to delete all data from this bucket?  (yes/no):\n")
-  confirm <- readLines(n=1)
-  res <- NULL
-  if(confirm == "yes") {
-    url <- paste(config$couch_url, ":8091/pools/default/buckets/LINCS1/controller/doFlush", sep="")
-    print(url)
-    res <- POST(url)
-  }
-  # status_code(res) should be 200
-  return(res)
-}
 
 init <- function() {
   statement <- "CREATE PRIMARY INDEX ON LINCS1"
@@ -32,8 +15,37 @@ init <- function() {
   res <- POST(url, query=list(statement=statement))  
 }
 
+hold <- function() {
+  statement <- "SELECT ARRAY_AGG(DISTINCT metadata.cell_line) FROM LINCS1"
+  res <- POST(url, query=list(statement=statement))
+  celllines <- unlist(content(res, as='parsed')$results)
+  
+  statement <- "SELECT metadata.* FROM LINCS1 LIMIT 10"
+  res <- POST(url, query=list(statement=statement))
+  pert <- unlist(content(res, as='parsed')$results)
+  
+  statement <- "SELECT ARRAY_AGG(DISTINCT metadata.type) FROM LINCS1"
+  res <- POST(url, query=list(statement=statement))
+  type <- unlist(content(res, as='parsed')$results)
+  
+  zs <- function(x) { unlist(x$zscore) }
+  id <- function(x) { x$id }
+  
+  # get gene idss
+  statement <- ("SELECT meta(LINCS1).id, data.gene_id FROM LINCS1 WHERE meta(LINCS1).id = 'GSM1715626'")
+  gids <- unlist(data$results[[1]]$gene_id)
+  
+  # get zscores
+  statement <- ("SELECT meta(LINCS1).id, data.gene_id, data.zscore FROM LINCS1 WHERE metadata.cell_line = 'A375'")
+  res <- POST(url, query=list(statement=statement))
+  data <- content(res, as = 'parsed')
+  zscores <- sapply(data[[3]], zs)
+  colnames(zscores) <- sapply(data[[3]], id) 
+  rownames(zscores) <- gids
+  ncol(zscores)
+  date()
+}
 
-# :( this is only 20% of the data
 load_all <- function () {
   # fetch superseries metadata to identify sub-series
   ss <- GET("http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE70138&form=text")
@@ -93,53 +105,30 @@ unique_drugs <- function() {
   unlist(content(res)$results)
 }
 
-load_from_hdf5 <- function(col) {
-  h5read("/mnt/lincs/inst_info.gctx", "0/META/COL/id", index=list(2))
-  
-  if(!exists('md')) {
-    md <- readRDS("../../../ExpSpect/data/metadata.rds")
-  }
-  
-  data <- h5read("../../../q2norm_n1328098x22268.gctx", "0/DATA/0/matrix", index=list(c(1:978), col))
-  ids <- h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/ROW/id", index=list(c(1:978)))
-  ids <- gsub(" ", "", ids)
-  colids <- h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/COL/id", index=list(col))
-  colids <- gsub(" ", "", colids)
-  
-  # verify matching data
-  if(! sum(colids == md$distil_id[col]) == length(col)) {
-    stop("ID mismatch between metadata and expression data")
-  }
-  
-  doc <- list();
-  for(i in 1:length(col)) {
-    doc <- list( metadata = md[col[i],], gene_ids = ids, norm_exp = data[,i])
-    statement <- paste("INSERT INTO LINCS1 (KEY, VALUE) VALUES('", colids[i], "', ", toJSON(doc), ")", sep="");    
-    res <- POST(url, query=list(statement=statement))
-    if(status_code(res) != 200) {
-      print(paste("Error uploading document for", colids[i], sep=" "))
-    } 
-  }
+# compare to  awk -F"\t" '!_[$2]++' loading.log | wc
+
+#statement <- "SELECT DISTINCT METADATA.name FROM LINCS1"
+#statement <- "SELECT metadata.* FROM LINCS1 WHERE metadata.name LIKE 'am%'"
+#res <- POST(url, query=list(statement=statement))
+
+
+
+function (keys, values, rereduce) {
+    var unique = function(a) {
+        return a.reduce(function(p, c) {
+            if (p.indexOf(c) < 0) p.push(c);
+            return p;
+        }, []);
+    };
+    if(!rereduce) {
+      return unique(values.map(function(a) {
+        return a.distil_id;
+       }));
+    } else {
+        var uv = [];
+        for (v in values) {
+             uv = uv.concat(values[v]);
+        }
+      return (unique(uv));
+    }
 }
-
-load_all_hdf5 <- function() {
-  for(i in seq(80001, length(h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/COL/id")), by = 500)) {
-    load_from_hdf5(i:(i+499))  
-    cat(i)
-  }
-}
-
-get_gold_instances <- function() {
-  url = "http://api.lincscloud.org/a2/siginfo?q={%22is_gold%22:%22true%22}&user_key=lincsdemo&l=1000&f={%22distil_id%22:1}&sk="
-  for(i in seq(0, 240901, by = 1000)) {
-    g <- c(g, unlist(content(GET(paste(url, i, sep="")))))
-    print(i)
-  }
-  g
-  ix <- which(names(g) == "_id")
-  unique(g[-ix])
-}
-
-
-
-

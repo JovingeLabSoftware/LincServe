@@ -1,0 +1,8 @@
+{
+    "views": {
+        "perturbagen": {
+            "map": "function (doc, meta) {\n  if (meta.type == \"json\") 
+            {\n    emit(doc.metadata.name, null);\n  } \n}"
+        }
+    }
+}

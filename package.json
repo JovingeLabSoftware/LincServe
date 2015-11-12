@@ -1,0 +1,22 @@
+{
+  "name": "CouchLincs",
+  "version": "1.0.0",
+  "description": "A high performance (hopefully) LINCS data server including Node.js server, couchbase backend, and R package for ETL",
+  "main": "bin/app.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JovingeLabSoftware/CouchLincs.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JovingeLabSoftware/CouchLincs/issues"
+  },
+  "homepage": "https://github.com/JovingeLabSoftware/CouchLincs",
+  "dependencies": {
+    "couchbase": "^2.1.2"
+  }
+}
