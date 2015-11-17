@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getAllByPert">getAllByPert</a></li><li data-type='method'><a href="LINCS.html#getByNIX">getByNIX</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getGoldByPert">getGoldByPert</a></li><li data-type='method'><a href="LINCS.html#getNIXRange">getNIXRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getAllByPert">getAllByPert</a></li><li data-type='method'><a href="LINCS.html#getByIndex">getByIndex</a></li><li data-type='method'><a href="LINCS.html#getByNIX">getByNIX</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getGoldByPert">getGoldByPert</a></li><li data-type='method'><a href="LINCS.html#getNIXRange">getNIXRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -42,12 +42,16 @@
 var config = require('../config');
 
 /**
- * Create the class and connect to couchbase.
+ * @class LINCS
+ * @classdesc
+ * Convenience class to facilitate data I/O to LINCS data on our couchbase server
  * @config {string} [ip] IP address of the couchdb server, from config.js
  * @config {string} [bucket] Name of the LINCS data bucket from config.js
  * @config {string} [password] Password, if any, for specified bucket
- * @constructor
+ * @example
+ * lincs = require('lincs');
  */
+
 var LINCS = function () {
 	var _couchbase = require('couchbase');
 	var _cluster = new _couchbase.Cluster('couchbase://' + config.couchdb.ip);
@@ -242,8 +246,8 @@ LINCS.prototype.query = function(q, cb) {
  * Get the range of numerical indexes.
  * Our documents have informative keys, but they are not amenable to sorting and ranging.
  * To overcome this we have created a view with numerical keys.  These can be sorted 
- * and ranged, but it is IMPORTANT to understand they are NOT UNIQUE.  We did not 
- * want to add th e overhead of creating numeric UUIDs.  There are may be several docs
+ * and ranged, but it is IMPORTANT to understand they are MAY NOT BE UNIQUE and ARE NOT CONTIGUOUS.  
+ * We did not want to add the overhead of creating numeric UUIDs.  There are may be several docs
  * per key, but that is fine for our purposes of rapid indexing and ranging.
  * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
  * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
@@ -295,6 +299,33 @@ LINCS.prototype.getByNIX = function(first, last, cb) {
     return deferred.promise;
 };
 
+/**
+ * Get a set of doc summaries by numerical key range.  NOTE: These ids are NOT unique.  Expect
+ * to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
+ * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
+ * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
+ * on a view is much faster, and using key ranges is even faster. 
+ * @param {integer} first First numerical index to return.
+ * @param {integer} last Last numerical index to return (inclusive).
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+LINCS.prototype.getByIndex = function(first, last, cb) {
+  var deferred = Q.defer();
+  var query = this.view.from('lincs', 'all_by_cell')
+    .reduce(false)
+    .range(first, last, true); // inclusive end
+
+  this.bucket.query(query, function(err, results) { 
+      if(err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve(results);
+      }
+    });
+
+    deferred.promise.nodeify(cb);
+    return deferred.promise;
+};
 
 module.exports = exports = new LINCS();
 </code></pre>
@@ -309,7 +340,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Tue Nov 17 2015 14:23:52 GMT+0000 (UTC)
+    Documentation generated at Tue Nov 17 2015 20:56:10 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
