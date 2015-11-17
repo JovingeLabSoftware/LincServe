@@ -256,14 +256,14 @@ LINCS.prototype.query = function(q, cb) {
  */
 LINCS.prototype.getNIXRange = function(cb) {
   var deferred = Q.defer();
-  var query = this.view.from('lincs', 'all_by_cell')
+  var query = this.view.from('lincs', 'numerical_index')
     .reduce(true)
 
   this.bucket.query(query, function(err, results) { 
       if(err) {
         deferred.reject(err);
       } else {
-        deferred.resolve(results);
+        deferred.resolve(results[0].value);
       }
     });
 
@@ -340,7 +340,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Tue Nov 17 2015 20:56:10 GMT+0000 (UTC)
+    Documentation generated at Tue Nov 17 2015 21:36:29 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
