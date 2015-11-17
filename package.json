@@ -4,19 +4,30 @@
   "description": "A high performance (hopefully) LINCS data server including Node.js server, couchbase backend, and R package for ETL",
   "main": "bin/app.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "docs": "jsdoc --configure .jsdoc.json --verbose; apidoc -i bin/ -o docs/api/",
+    "doc_deploy": "cp -R docs/api ../CouchLincsDoc/CouchLincs/api; cp -R docs/CouchLincs/1.0.0/* ../CouchLincsDoc/CouchLincs/;"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/JovingeLabSoftware/CouchLincs.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/JovingeLabSoftware/CouchLincs/issues"
   },
   "homepage": "https://github.com/JovingeLabSoftware/CouchLincs",
   "dependencies": {
-    "couchbase": "^2.1.2"
+    "couchbase": "^2.1.2",
+    "restify": "^4.0.3"
+  },
+  "devDependencies": {
+    "jsdoc": "^3.3.3",
+    "latodoc": "git://github.com/smeijer/latodoc"
+  },
+ "apidoc": {
+    "title": "LINCS REST API Browser",
+    "url" : "https://localhost"
   }
 }

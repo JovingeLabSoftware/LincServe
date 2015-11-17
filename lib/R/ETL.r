@@ -28,7 +28,11 @@ init <- function() {
   statement <- "CREATE PRIMARY INDEX ON LINCS1"
   # will fail silently if already exists...
   res <- POST(url, query=list(statement=statement))  
-  statement <- "CREATE INDEX ix_perturbagen ON LINCS1(metadata.name)"
+  statement <- "CREATE INDEX ix_pert_desc ON LINCS1(metadata.pert_desc)"
+  res <- POST(url, query=list(statement=statement))  
+  statement <- "CREATE INDEX ix_pert_id ON LINCS1(metadata.pert_id)"
+  res <- POST(url, query=list(statement=statement))  
+  statement <- "CREATE INDEX ix_cell_id ON LINCS1(metadata.cell_id)"
   res <- POST(url, query=list(statement=statement))  
 }
 
@@ -123,8 +127,9 @@ load_from_hdf5 <- function(col) {
 }
 
 load_all_hdf5 <- function() {
-  for(i in seq(80001, length(h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/COL/id")), by = 500)) {
-    load_from_hdf5(i:(i+499))  
+  for(i in seq(1, length(h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/COL/id")), by = 500)) {
+    ii <- min(i+499, length(h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/COL/id")))
+    load_from_hdf5(i:ii)  
     cat(i)
   }
 }

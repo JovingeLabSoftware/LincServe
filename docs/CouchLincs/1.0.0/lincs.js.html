@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>lincs.js - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getAllByPert">getAllByPert</a></li><li data-type='method'><a href="LINCS.html#getByIndex">getByIndex</a></li><li data-type='method'><a href="LINCS.html#getByNIX">getByNIX</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getGoldByPert">getGoldByPert</a></li><li data-type='method'><a href="LINCS.html#getNIXRange">getNIXRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">lincs.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>var Q = require('q');
+var config = require('../config');
+
+/**
+ * @class LINCS
+ * @classdesc
+ * Convenience class to facilitate data I/O to LINCS data on our couchbase server
+ * @config {string} [ip] IP address of the couchdb server, from config.js
+ * @config {string} [bucket] Name of the LINCS data bucket from config.js
+ * @config {string} [password] Password, if any, for specified bucket
+ * @example
+ * lincs = require('lincs');
+ */
+
+var LINCS = function () {
+	var _couchbase = require('couchbase');
+	var _cluster = new _couchbase.Cluster('couchbase://' + config.couchdb.ip);
+	var _bucket = _cluster.openBucket(config.couchdb.bucket, config.couchdb.password, function(err, res) {
+    if(err) {
+      throw new Error("Failed to connect to bucket.  Please confirm connection details in config.json");
+    }
+  });
+  var n1ql_url = "http://" + config.couchdb.ip + ":8093";
+  var _n1ql = _couchbase.N1qlQuery;
+  _bucket.enableN1ql([n1ql_url]);
+  var _view = _couchbase.ViewQuery;
+
+   // no reason to do this now, but preparing for more logic 
+   // and enforecement on accessors in the future.
+   this.cluster = _cluster;
+   this.bucket = _bucket;
+   this.view = _view;
+   this.n1ql = _n1ql;
+};
+
+/**
+ * Get gold instances for given cell line.
+ * @param {string} cell Name of the cell line (e.g. 'A549').
+ * @param {integer} skip How many records to skip.  Useful for paging/throttling.
+ * @param {integer} limit How many records to return. 
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ * @example
+ * lincs.getGoldByCell('VCAP').then(function(err, res) { console.log(res[1])})
+ */
+LINCS.prototype.getGoldByCell = function(cell, skip, limit, cb) {
+	var deferred = Q.defer();
+  var start = [cell, "", -10000, -10000];
+  var end = [cell, "\uefff", 10000, 10000];
+  var query = this.view.from('lincs', 'gold_by_cell')
+    .reduce(false)
+    .skip(skip)
+    .limit(limit)
+    .range(start, end);
+
+	this.bucket.query(query, function(err, results) { 
+  		if(err) {
+  			deferred.reject(err);
+  		} else {
+	  		deferred.resolve(results);
+  		}
+  	});
+
+  	deferred.promise.nodeify(cb);
+  	return deferred.promise;
+};
+
+/**
+ * Get gold instances for a specific perturbation
+ * @param {string} name The name of the perturbagen desired.
+ * @param {float} dose The dose (as a number -- unitless!)
+ * @param {integer} time Time (as a number -- unitless!)
+ * @param {string} cell Name of the cell line (e.g. 'A549').
+ * @param {integer} skip How many records to skip.  Useful for paging/throttling.
+ * @param {integer} limit How many records to return. 
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ * @example
+ * lincs.getGoldByPert('BMP7', 100, 2, "A375").then(function(err, res) { console.log(res[1])})
+ */
+LINCS.prototype.getGoldByPert = function(name, dose, time, cell, skip, limit, cb) {
+	var deferred = Q.defer();
+    var start = [cell, name, dose, time];
+    var end = [cell, name, dose, time];
+    var query = this.view.from('lincs', 'gold_by_cell')
+    	.reduce(false)
+    	.skip(skip)
+    	.limit(limit)
+    	.range(start, end);
+
+	this.bucket.query(query, function(err, results) { 
+  		if(err) {
+  			deferred.reject(err);
+  		} else {
+	  		deferred.resolve(results);
+  		}
+  	});
+
+  	deferred.promise.nodeify(cb);
+  	return deferred.promise;
+};
+
+/**
+ * Get ALL instances for a specific perturbation
+ * @param {string} name The name of the perturbagen desired.
+ * @param {float} dose The dose (as a number -- unitless!)
+ * @param {integer} time Time (as a number -- unitless!)
+ * @param {string} cell Name of the cell line (e.g. 'A549').
+ * @param {integer} skip How many records to skip.  Useful for paging/throttling.
+ * @param {integer} limit How many records to return. 
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ * @example
+ * lincs.getGoldByPert('BMP7', 100, 2, "A375").then(function(err, res) { console.log(res[1])})
+ */
+LINCS.prototype.getAllByPert = function(name, dose, time, cell, skip, limit, cb) {
+	var deferred = Q.defer();
+    var start = [cell, name, dose, time];
+    var end = [cell, name, dose, time];
+    var query = this.view.from('lincs', 'all_by_cell')
+    	.reduce(false)
+    	.skip(skip)
+    	.limit(limit)
+    	.range(start, end);
+
+	this.bucket.query(query, function(err, results) { 
+  		if(err) {
+  			deferred.reject(err);
+  		} else {
+	  		deferred.resolve(results);
+  		}
+  	});
+
+  	deferred.promise.nodeify(cb);
+  	return deferred.promise;
+};
+
+/**
+ * Get the vehicle for a given instance
+ * @param {string} key The key of the desired instance
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+
+LINCS.prototype.getVehicle = function(key, cb) {
+	var deferred = Q.defer();
+  	this.bucket.get(key, function(err, doc) {
+  		if(err) {
+  			deferred.reject(err);
+  		} else {
+	  		deferred.resolve(doc.value.metadata.pert_vehicle);
+  		}
+  	});
+  	deferred.promise.nodeify(cb);
+  	return deferred.promise;
+};
+
+/**
+ * Get the Q2NORM data for a given instance (L1000 only)
+ * @param {string} key The key of the desired instance
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+LINCS.prototype.getExpression = function(key, cb) {
+	var deferred = Q.defer();
+	this.bucket.get(key, function(err, doc) {
+		if(err) {
+			deferred.reject(err);
+		} else {
+  		deferred.resolve(doc.value.norm_exp);
+		}
+	});
+	deferred.promise.nodeify(cb);
+	return deferred.promise;
+};
+
+/**
+ * Get the list of unique perturbagens by type.
+ * @param {string} type The type of perturbagen (one of )
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+LINCS.prototype.getPerturbagens = function(type, cb) {
+  var deferred = Q.defer();
+  var query = this.n1ql.fromString("EXPLAIN SELECT COUNT(*) FROM " + config.couchdb.bucket + " WHERE metadata.cell_id = 'A549'") // + ' WHERE metadata.pert_type = "trt_cp"')
+  this.bucket.query(query, function(err, res) {
+    if(err) {
+      deferred.reject(err);
+    } else {
+      deferred.resolve(res);
+    }
+  });
+  deferred.promise.nodeify(cb);
+  return deferred.promise;
+};
+
+LINCS.prototype.query = function(q, cb) {
+  var deferred = Q.defer();
+  var query = this.n1ql.fromString(q);
+  this.bucket.query(query, function(err, res) {
+    if(err) {
+      deferred.reject(err);
+    } else {
+      deferred.resolve(res);
+    }
+  });
+  deferred.promise.nodeify(cb);
+  return deferred.promise;
+};
+
+/**
+ * Get the range of numerical indexes.
+ * Our documents have informative keys, but they are not amenable to sorting and ranging.
+ * To overcome this we have created a view with numerical keys.  These can be sorted 
+ * and ranged, but it is IMPORTANT to understand they are MAY NOT BE UNIQUE and ARE NOT CONTIGUOUS.  
+ * We did not want to add the overhead of creating numeric UUIDs.  There are may be several docs
+ * per key, but that is fine for our purposes of rapid indexing and ranging.
+ * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
+ * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
+ * on a view is much faster, and using key ranges is even faster. 
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+LINCS.prototype.getNIXRange = function(cb) {
+  var deferred = Q.defer();
+  var query = this.view.from('lincs', 'numerical_index')
+    .reduce(true)
+
+  this.bucket.query(query, function(err, results) { 
+      if(err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve(results[0].value);
+      }
+    });
+
+    deferred.promise.nodeify(cb);
+    return deferred.promise;
+};
+
+/**
+ * Get a set of doc summaries by numerical key range.  NOTE: These ids are NOT unique.  Expect
+ * to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
+ * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
+ * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
+ * on a view is much faster, and using key ranges is even faster. 
+ * @param {integer} first First numerical index to return.
+ * @param {integer} last Last numerical index to return (inclusive).
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+LINCS.prototype.getByNIX = function(first, last, cb) {
+  var deferred = Q.defer();
+  var query = this.view.from('lincs', 'all_by_cell')
+    .reduce(false)
+    .range(first, last, true); // inclusive end
+
+  this.bucket.query(query, function(err, results) { 
+      if(err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve(results);
+      }
+    });
+
+    deferred.promise.nodeify(cb);
+    return deferred.promise;
+};
+
+/**
+ * Get a set of doc summaries by numerical key range.  NOTE: These ids are NOT unique.  Expect
+ * to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
+ * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
+ * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
+ * on a view is much faster, and using key ranges is even faster. 
+ * @param {integer} first First numerical index to return.
+ * @param {integer} last Last numerical index to return (inclusive).
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+LINCS.prototype.getByIndex = function(first, last, cb) {
+  var deferred = Q.defer();
+  var query = this.view.from('lincs', 'all_by_cell')
+    .reduce(false)
+    .range(first, last, true); // inclusive end
+
+  this.bucket.query(query, function(err, results) { 
+      if(err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve(results);
+      }
+    });
+
+    deferred.promise.nodeify(cb);
+    return deferred.promise;
+};
+
+module.exports = exports = new LINCS();
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated at Tue Nov 17 2015 21:36:29 GMT+0000 (UTC)
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
