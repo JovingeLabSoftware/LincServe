@@ -6,7 +6,7 @@
   "scripts": {
     "test": "mocha",
     "docs": "jsdoc --configure .jsdoc.json --verbose; apidoc -i bin/ -o docs/api/",
-    "doc_deploy": "cp -R docs/api ../CouchLincsDoc/CouchLincs/api; cp -R docs/CouchLincs/1.0.0/* ../CouchLincsDoc/CouchLincs/;"
+    "doc_deploy": "cp -R docs/api/* ../CouchLincsDoc/CouchLincs/api; cp -R docs/CouchLincs/1.0.0/* ../CouchLincsDoc/CouchLincs/;"
   },
   "repository": {
     "type": "git",

@@ -26,7 +26,21 @@ server.get('/', function(req, res){
 });
 
 /**
- * @api {get} /LINCS/nixrange Request range of numerical index
+ * @api {get} /LINCS  Get some documentation on endpoints.
+ * @apiName Root
+ * @apiGroup Root
+ *
+ * @apiSuccess {string} response  Some useful information.
+ */
+server.get('/LINCS', function(req, res){
+    res.send(200, "Current endpoints: /LINCS/nixrange.  See http://jovingelabsoftware.github.io/CouchLincs/api for details");
+});
+
+/**
+ * @api {get} /LINCS/nixrange Request range of numerical index.
+ * @apiDescription Remember that the numerical indices are used for 
+ *  rapid paging/chunking.  They are NOT necessarily uniqe, NOT 
+ *  contiguous, and NOT in any sort of order.  But they are FAST.
  * @apiName nixrange
  * @apiGroup LINCS
  *
@@ -37,6 +51,31 @@ server.get('/LINCS/nixrange', function(req, res){
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
     lincs.getNIXRange(function(err, data) {
+        if(err) {
+            res.send(400, err);
+        } else {
+            res.send(200, data);
+        }
+    });
+});
+
+/**
+ * @api {POST} /LINCS/summaries Request summary docs by numerical index range 
+ * @apiName summaries
+ * @apiGroup LINCS
+ * @apiDescription Remember that the numerical indices are used for 
+ *  rapid paging/chunking.  They are NOT necessarily uniqe, NOT 
+ *  contiguous, and NOT in any sort of order.  But they are FAST.
+ *
+ * @apiParam {Number} first Starting numerical index.
+ * @apiParam {Number} last Ending numerical index.
+ *
+ * @apiSuccess {string} summaries Summary docs in JSON format
+ */
+server.post('/LINCS/summaries', function(req, res){
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    lincs.getByNIX(req.params.first, req.params.last, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {

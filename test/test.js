@@ -21,7 +21,7 @@ describe('Server up', function() {
 });
 
 describe('LINCS methods', function() {
-  it('retrieves list of data types', function(done) {
+  it('retrieves range of numerical indices', function(done) {
     client.get('/LINCS/nixrange', function(err, req, res, data) {
       if (err) {
           throw new Error(err);
@@ -33,4 +33,18 @@ describe('LINCS methods', function() {
       }
     });
   });
+
+  it('retrieves list of data types', function(done) {
+  client.get('/LINCS/nixrange', function(err, req, res, data) {
+    if (err) {
+        throw new Error(err);
+    } else {
+        client.post('/LINCS/summaries', {first: data.min, last: data.min+10000000000}, function(err, req, res, data) {
+          assert.ok(data[0]);
+          done();
+        })
+    }
+  });
+});
+
 });
