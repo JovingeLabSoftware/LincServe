@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li><li data-type='method'><a href="LINCS.html#getZSVC">getZSVC</a></li><li data-type='method'><a href="LINCS.html#saveZScores">saveZScores</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -296,6 +296,127 @@ LINCS.prototype.getByPert = function(cell_line,
     return deferred.promise;
 };
 
+
+/**
+ * Get zscores (vs. vehicle control) matching specified cell line and perturbagen.
+ * Note that the view this function queries has a compound key.  Therefore,
+ * if perturbagen (pert) is specified, cell_line must also be specified.
+ * Similarly, if dose and time are specified, perturbagen and cell line 
+ * must also be specified.
+ * @param {string} cell_line ID of cell lines. Can be null.
+ * @param {string} pert Name of perturbagen. Can be null.
+ * @param {numeric} dose Dose (numeric, unitless).  Can be null.
+ * @param {numeric} time Duration of exposure (numeric, unitless). Can be null.
+ * @param {boolean} gold Should query be restricted to gold instances. If null,
+ *                       defaults to true.
+ * @param {function} cb Call back to be called upon completion of async call.  
+ *                       Optional--can use promises instead.
+ */
+
+LINCS.prototype.getZSVC = function(cell_line, 
+                                     pert, 
+                                     dose, 
+                                     time, 
+                                     skip, 
+                                     limit, 
+                                     gold,
+                                     cb) {
+
+  var query;
+  var deferred = Q.defer();
+  var startkey = [cell_line || "", pert || "", dose || -999, time || -999];
+  var endkey = [cell_line || "\uefff", pert || "\uefff", dose || 9999, time || 9999];
+  gold = gold || true;
+  
+  if(gold) {
+    query = this.view.from('lincs', 'ZSVC_L1000_gold')
+      .reduce(false).skip(skip || 0).limit(limit || 1000);
+  } else {
+    query = this.view.from('lincs', 'ZSVC_L1000')
+      .reduce(false).skip(skip || 0).limit(limit || 1000);
+  }
+  
+  query.options.startkey = JSON.stringify(startkey);  // query.range does not work 
+                                                      // because it adds quotes
+  query.options.endkey = JSON.stringify(endkey);  
+  
+  if(!cell_line &amp;&amp; pert) {
+    deferred.reject(new Error("Must specify cell line if perturbagen is specified"));
+  } else if((dose || time) &amp;&amp; (!pert || !cell_line)) {
+    deferred.reject(new Error("Must specify cell line and perturbagen " +
+                                "if dose and duration are specified"));
+  }
+  this.bucket.query(query, function(err, results) { 
+      if(err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve(results);
+      }
+    });
+
+    deferred.promise.nodeify(cb);
+    return deferred.promise;
+};
+
+
+/**
+ * Insert a z score document into the document store.  
+ * @param {string} id ID of the signature.
+ * @param {string} cell_line ID of cell lines. Can be null.
+ * @param {string} pert Name of perturbagen. Can be null.
+ * @param {numeric} dose Dose (numeric, unitless).  Can be null.
+ * @param {numeric} time Duration of exposure (numeric, unitless). Can be null.
+ * @param {string} type Type of zscore, e.g. "ZSVC_L1000"
+ * @param {string[]} gene_ids Gene identifiers corresponding to scores
+ * @param {numeric[]} zscores The scores.
+ * @param {boolean} gold Is this a gold signature? Can be null
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+LINCS.prototype.saveZScores = function(cell_line, 
+                                       pert, 
+                                       dose, 
+                                       time, 
+                                       type, 
+                                       gene_ids, 
+                                       zscores, 
+                                       gold,
+                                       cb) {
+  var deferred = Q.defer();
+  gold = gold || false;
+  
+  if(gene_ids.length != zscores.length) {
+        deferred.reject(new Error("Gene IDs length must match zscores length"));
+  }
+  var id = [cell_line, pert, dose, time, type].join("_");
+  this.bucket.upsert(id, {metadata: {cell_id: cell_line, pert_id: pert, 
+                     pert_dose: dose, pert_time: time, type: type, is_gold: gold},
+                     gene_ids: gene_ids,
+                     zscores: zscores}, function(err, res) 
+  {
+    if(err) {
+      deferred.reject(err);
+    } else {
+      deferred.resolve(res);
+    }
+ });
+  deferred.promise.nodeify(cb);
+  return deferred.promise;
+};
+
+/* zscore view:
+function (doc, meta) {
+  if(doc.metadata.type == "ZSVC_L1000") {
+    emit([doc.metadata.cell_id,
+          doc.metadata.pert_id,
+          doc.metadata.pert_dose,
+          doc.metadata.pert_time],
+         {gene_ids: doc.gene_ids,
+          zscores: doc.zscores}
+    );
+  }
+}
+*/
+
 module.exports = exports = new LINCS();
 </code></pre>
         </article>
@@ -309,7 +430,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Mon Nov 23 2015 17:07:00 GMT+0000 (UTC)
+    Documentation generated at Mon Nov 23 2015 21:03:16 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
