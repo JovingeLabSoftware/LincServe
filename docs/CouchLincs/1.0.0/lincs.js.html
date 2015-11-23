@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getAllByPert">getAllByPert</a></li><li data-type='method'><a href="LINCS.html#getByIndex">getByIndex</a></li><li data-type='method'><a href="LINCS.html#getByNIX">getByNIX</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getGoldByPert">getGoldByPert</a></li><li data-type='method'><a href="LINCS.html#getNIXRange">getNIXRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -104,73 +104,6 @@ LINCS.prototype.getGoldByCell = function(cell, skip, limit, cb) {
   	return deferred.promise;
 };
 
-/**
- * Get gold instances for a specific perturbation
- * @param {string} name The name of the perturbagen desired.
- * @param {float} dose The dose (as a number -- unitless!)
- * @param {integer} time Time (as a number -- unitless!)
- * @param {string} cell Name of the cell line (e.g. 'A549').
- * @param {integer} skip How many records to skip.  Useful for paging/throttling.
- * @param {integer} limit How many records to return. 
- * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
- * @example
- * lincs.getGoldByPert('BMP7', 100, 2, "A375").then(function(err, res) { console.log(res[1])})
- */
-LINCS.prototype.getGoldByPert = function(name, dose, time, cell, skip, limit, cb) {
-	var deferred = Q.defer();
-    var start = [cell, name, dose, time];
-    var end = [cell, name, dose, time];
-    var query = this.view.from('lincs', 'gold_by_cell')
-    	.reduce(false)
-    	.skip(skip)
-    	.limit(limit)
-    	.range(start, end);
-
-	this.bucket.query(query, function(err, results) { 
-  		if(err) {
-  			deferred.reject(err);
-  		} else {
-	  		deferred.resolve(results);
-  		}
-  	});
-
-  	deferred.promise.nodeify(cb);
-  	return deferred.promise;
-};
-
-/**
- * Get ALL instances for a specific perturbation
- * @param {string} name The name of the perturbagen desired.
- * @param {float} dose The dose (as a number -- unitless!)
- * @param {integer} time Time (as a number -- unitless!)
- * @param {string} cell Name of the cell line (e.g. 'A549').
- * @param {integer} skip How many records to skip.  Useful for paging/throttling.
- * @param {integer} limit How many records to return. 
- * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
- * @example
- * lincs.getGoldByPert('BMP7', 100, 2, "A375").then(function(err, res) { console.log(res[1])})
- */
-LINCS.prototype.getAllByPert = function(name, dose, time, cell, skip, limit, cb) {
-	var deferred = Q.defer();
-    var start = [cell, name, dose, time];
-    var end = [cell, name, dose, time];
-    var query = this.view.from('lincs', 'all_by_cell')
-    	.reduce(false)
-    	.skip(skip)
-    	.limit(limit)
-    	.range(start, end);
-
-	this.bucket.query(query, function(err, results) { 
-  		if(err) {
-  			deferred.reject(err);
-  		} else {
-	  		deferred.resolve(results);
-  		}
-  	});
-
-  	deferred.promise.nodeify(cb);
-  	return deferred.promise;
-};
 
 /**
  * Get the vehicle for a given instance
@@ -243,7 +176,7 @@ LINCS.prototype.query = function(q, cb) {
 };
 
 /**
- * Get the range of numerical indexes.
+ * Get the range of numerical ids.
  * Our documents have informative keys, but they are not amenable to sorting and ranging.
  * To overcome this we have created a view with numerical keys.  These can be sorted 
  * and ranged, but it is IMPORTANT to understand they are MAY NOT BE UNIQUE and ARE NOT CONTIGUOUS.  
@@ -254,7 +187,7 @@ LINCS.prototype.query = function(q, cb) {
  * on a view is much faster, and using key ranges is even faster. 
  * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
  */
-LINCS.prototype.getNIXRange = function(cb) {
+LINCS.prototype.getNIDRange = function(cb) {
   var deferred = Q.defer();
   var query = this.view.from('lincs', 'numerical_index')
     .reduce(true)
@@ -272,21 +205,26 @@ LINCS.prototype.getNIXRange = function(cb) {
 };
 
 /**
- * Get a set of doc summaries by numerical key range.  NOTE: These ids are NOT unique.  Expect
+ * Get a set of doc summaries by NID (numerical ID) or index range.  NOTE: NIDs are NOT unique.  Expect
  * to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
  * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
  * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
  * on a view is much faster, and using key ranges is even faster. 
  * @param {integer} first First numerical index to return.
  * @param {integer} last Last numerical index to return (inclusive).
+ * @param {boolean} NID Are first and last NIDs?  Alternative is document number ("page").
  * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
  */
-LINCS.prototype.getByNIX = function(first, last, cb) {
+LINCS.prototype.getSummaries = function(first, last, NID, cb) {
   var deferred = Q.defer();
   var query = this.view.from('lincs', 'numerical_index')
-    .reduce(false)
-    .range(first, last, true); // inclusive end
-
+    .reduce(false);
+  if(NID) {
+    query.options.startkey = first;  // query.range does not work because it adds quotes
+    query.options.endkey = last;
+  } else {
+    query = query.skip(first).limit(last-first);    
+  }
   this.bucket.query(query, function(err, results) { 
       if(err) {
         deferred.reject(err);
@@ -300,21 +238,52 @@ LINCS.prototype.getByNIX = function(first, last, cb) {
 };
 
 /**
- * Get a set of doc summaries by numerical key range.  NOTE: These ids are NOT unique.  Expect
- * to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
- * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
- * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
- * on a view is much faster, and using key ranges is even faster. 
- * @param {integer} first First numerical index to return.
- * @param {integer} last Last numerical index to return (inclusive).
- * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ * Get instance ids matching specified cell line and perturbagen.
+ * Note that the view this function queries has a compound key.  Therefore,
+ * if perturbagen (pert) is specified, cell_line must also be specified.
+ * Similarly, if dose and time are specified, perturbagen and cell line 
+ * must also be specified.
+ * @param {string} cell_line ID of cell lines. Can be null.
+ * @param {string} pert Name of perturbagen. Can be null.
+ * @param {numeric} dose Dose (numeric, unitless).  Can be null.
+ * @param {numeric} time Duration of exposure (numeric, unitless). Can be null.
+ * @param {boolean} gold Should query be restricted to gold instances. If null,
+ *                       defaults to true.
+ * @param {function} cb Call back to be called upon completion of async call.  
+ *                       Optional--can use promises instead.
  */
-LINCS.prototype.getByIndex = function(first, last, cb) {
+LINCS.prototype.getByPert = function(cell_line, 
+                                     pert, 
+                                     dose, 
+                                     time, 
+                                     skip, 
+                                     limit, 
+                                     gold, 
+                                     cb) {
+  var query;
   var deferred = Q.defer();
-  var query = this.view.from('lincs', 'all_by_cell')
-    .reduce(false)
-    .range(first, last, true); // inclusive end
-
+  var startkey = [cell_line || "", pert || "", dose || -999, time || -999];
+  var endkey = [cell_line || "\uefff", pert || "\uefff", dose || 9999, time || 9999];
+  gold = gold || true;
+  
+  if(gold) {
+    query = this.view.from('lincs', 'gold_by_cell')
+      .reduce(false).skip(skip || 0).limit(limit || 1000);
+  } else {
+    query = this.view.from('lincs', 'all_by_cell')
+      .reduce(false).skip(skip || 0).limit(limit || 1000);
+  }
+  
+  query.options.startkey = JSON.stringify(startkey);  // query.range does not work 
+                                                      // because it adds quotes
+  query.options.endkey = JSON.stringify(endkey);  
+  
+  if(!cell_line &amp;&amp; pert) {
+    deferred.reject(new Error("Must specify cell line if perturbagen is specified"));
+  } else if((dose || time) &amp;&amp; (!pert || !cell_line)) {
+    deferred.reject(new Error("Must specify cell line and perturbagen " +
+                                "if dose and duration are specified"));
+  }
   this.bucket.query(query, function(err, results) { 
       if(err) {
         deferred.reject(err);
@@ -340,7 +309,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Tue Nov 17 2015 22:16:26 GMT+0000 (UTC)
+    Documentation generated at Mon Nov 23 2015 15:31:01 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>

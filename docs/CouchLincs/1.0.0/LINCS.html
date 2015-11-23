@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getAllByPert">getAllByPert</a></li><li data-type='method'><a href="LINCS.html#getByIndex">getByIndex</a></li><li data-type='method'><a href="LINCS.html#getByNIX">getByNIX</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getGoldByPert">getGoldByPert</a></li><li data-type='method'><a href="LINCS.html#getNIXRange">getNIXRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -159,14 +159,18 @@
 
     
 
-    <h4 class="name" id="getAllByPert"><span class="type-signature"></span>getAllByPert<span class="signature">(name, dose, time, cell, skip, limit, cb)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="getByPert"><span class="type-signature"></span>getByPert<span class="signature">(cell_line, pert, dose, time, gold, cb)</span><span class="type-signature"></span></h4>
 
     
 
 
 
 <div class="description">
-    <p>Get ALL instances for a specific perturbation</p>
+    <p>Get instance ids matching specified cell line and perturbagen.
+Note that the view this function queries has a compound key.  Therefore,
+if perturbagen (pert) is specified, cell_line must also be specified.
+Similarly, if dose and time are specified, perturbagen and cell line 
+must also be specified.</p>
 </div>
 
 
@@ -202,7 +206,7 @@
 
         <tr>
             
-                <td class="name"><code>name</code></td>
+                <td class="name"><code>cell_line</code></td>
             
 
             <td class="type">
@@ -218,7 +222,30 @@
 
             
 
-            <td class="description last"><p>The name of the perturbagen desired.</p></td>
+            <td class="description last"><p>ID of cell lines. Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>pert</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Name of perturbagen. Can be null.</p></td>
         </tr>
 
     
@@ -231,7 +258,7 @@
             <td class="type">
             
                 
-<span class="param-type">float</span>
+<span class="param-type">numeric</span>
 
 
             
@@ -241,7 +268,7 @@
 
             
 
-            <td class="description last"><p>The dose (as a number -- unitless!)</p></td>
+            <td class="description last"><p>Dose (numeric, unitless).  Can be null.</p></td>
         </tr>
 
     
@@ -254,7 +281,7 @@
             <td class="type">
             
                 
-<span class="param-type">integer</span>
+<span class="param-type">numeric</span>
 
 
             
@@ -264,20 +291,20 @@
 
             
 
-            <td class="description last"><p>Time (as a number -- unitless!)</p></td>
+            <td class="description last"><p>Duration of exposure (numeric, unitless). Can be null.</p></td>
         </tr>
 
     
 
         <tr>
             
-                <td class="name"><code>cell</code></td>
+                <td class="name"><code>gold</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">string</span>
+<span class="param-type">boolean</span>
 
 
             
@@ -287,53 +314,8 @@
 
             
 
-            <td class="description last"><p>Name of the cell line (e.g. 'A549').</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>skip</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>How many records to skip.  Useful for paging/throttling.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>limit</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>How many records to return.</p></td>
+            <td class="description last"><p>Should query be restricted to gold instances. If null,
+                      defaults to true.</p></td>
         </tr>
 
     
@@ -356,7 +338,7 @@
 
             
 
-            <td class="description last"><p>Call back to be called upon completion of async call.  Optional--can use promises instead.</p></td>
+            <td class="description last"><p>Call back to be called upon completion of async call.<br>                      Optional--can use promises instead.</p></td>
         </tr>
 
     
@@ -397,374 +379,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line113">line 113</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <h5>Example</h5>
-    
-    <pre class="prettyprint"><code>lincs.getGoldByPert('BMP7', 100, 2, "A375").then(function(err, res) { console.log(res[1])})</code></pre>
-
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="getByIndex"><span class="type-signature"></span>getByIndex<span class="signature">(first, last, cb)</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-<div class="description">
-    <p>Get a set of doc summaries by numerical key range.  NOTE: These ids are NOT unique.  Expect
-to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
-This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
-up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
-on a view is much faster, and using key ranges is even faster.</p>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>first</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>First numerical index to return.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>last</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Last numerical index to return (inclusive).</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>cb</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">function</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Call back to be called upon completion of async call.  Optional--can use promises instead.</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line272">line 272</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="getByNIX"><span class="type-signature"></span>getByNIX<span class="signature">(first, last, cb)</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-<div class="description">
-    <p>Get a set of doc summaries by numerical key range.  NOTE: These ids are NOT unique.  Expect
-to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
-This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
-up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
-on a view is much faster, and using key ranges is even faster.</p>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>first</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>First numerical index to return.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>last</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Last numerical index to return (inclusive).</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>cb</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">function</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Call back to be called upon completion of async call.  Optional--can use promises instead.</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line244">line 244</a>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line215">line 215</a>
     </li></ul></dd>
     
 
@@ -918,7 +533,7 @@ on a view is much faster, and using key ranges is even faster.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line159">line 159</a>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line92">line 92</a>
     </li></ul></dd>
     
 
@@ -1154,288 +769,14 @@ on a view is much faster, and using key ranges is even faster.</p>
 
     
 
-    <h4 class="name" id="getGoldByPert"><span class="type-signature"></span>getGoldByPert<span class="signature">(name, dose, time, cell, skip, limit, cb)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="getNIDRange"><span class="type-signature"></span>getNIDRange<span class="signature">(cb)</span><span class="type-signature"></span></h4>
 
     
 
 
 
 <div class="description">
-    <p>Get gold instances for a specific perturbation</p>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>name</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>The name of the perturbagen desired.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>dose</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">float</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>The dose (as a number -- unitless!)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>time</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Time (as a number -- unitless!)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>cell</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Name of the cell line (e.g. 'A549').</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>skip</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>How many records to skip.  Useful for paging/throttling.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>limit</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">integer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>How many records to return.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>cb</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">function</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Call back to be called upon completion of async call.  Optional--can use promises instead.</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line79">line 79</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <h5>Example</h5>
-    
-    <pre class="prettyprint"><code>lincs.getGoldByPert('BMP7', 100, 2, "A375").then(function(err, res) { console.log(res[1])})</code></pre>
-
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="getNIXRange"><span class="type-signature"></span>getNIXRange<span class="signature">(cb)</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-<div class="description">
-    <p>Get the range of numerical indexes.
+    <p>Get the range of numerical ids.
 Our documents have informative keys, but they are not amenable to sorting and ranging.
 To overcome this we have created a view with numerical keys.  These can be sorted 
 and ranged, but it is IMPORTANT to understand they are MAY NOT BE UNIQUE and ARE NOT CONTIGUOUS.<br>We did not want to add the overhead of creating numeric UUIDs.  There are may be several docs
@@ -1535,7 +876,7 @@ on a view is much faster, and using key ranges is even faster.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line217">line 217</a>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line150">line 150</a>
     </li></ul></dd>
     
 
@@ -1689,7 +1030,211 @@ on a view is much faster, and using key ranges is even faster.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line177">line 177</a>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line110">line 110</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="getSummaries"><span class="type-signature"></span>getSummaries<span class="signature">(first, last, NID, cb)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Get a set of doc summaries by NID (numerical ID) or index range.  NOTE: NIDs are NOT unique.  Expect
+to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
+This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
+up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
+on a view is much faster, and using key ranges is even faster.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>first</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">integer</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>First numerical index to return.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>last</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">integer</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Last numerical index to return (inclusive).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>NID</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Are first and last NIDs?  Alternative is document number (&quot;page&quot;).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cb</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Call back to be called upon completion of async call.  Optional--can use promises instead.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line178">line 178</a>
     </li></ul></dd>
     
 
@@ -1843,7 +1388,7 @@ on a view is much faster, and using key ranges is even faster.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line141">line 141</a>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line74">line 74</a>
     </li></ul></dd>
     
 
@@ -1887,7 +1432,7 @@ on a view is much faster, and using key ranges is even faster.</p>
 <br class="clear">
 
 <footer>
-    Documentation generated at Tue Nov 17 2015 22:16:26 GMT+0000 (UTC)
+    Documentation generated at Mon Nov 23 2015 15:31:01 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
