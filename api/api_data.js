@@ -140,6 +140,92 @@ define({ "api": [
     "groupTitle": "LINCS"
   },
   {
+    "type": "POST",
+    "url": "/LINCS/zscores",
+    "title": "Save zscores to database",
+    "name": "setZScores",
+    "group": "LINCS",
+    "description": "<p>Saves z-score document to document stre.</p> ",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "pert",
+            "description": "<p>Name of perturbagen.</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "cell",
+            "description": "<p>Name of cell line.</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>Numeric</p> ",
+            "optional": false,
+            "field": "dose",
+            "description": "<p>Dose, without units.</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>Numeric</p> ",
+            "optional": false,
+            "field": "duration",
+            "description": "<p>Duration, without units.</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>Boolean</p> ",
+            "optional": false,
+            "field": "gold",
+            "description": "<p>Is this signature derived from gold instances?</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "type",
+            "description": "<p>The type of zscore, e.g. &quot;ZSVC_L1000&quot;</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>String[]</p> ",
+            "optional": false,
+            "field": "gene_ids",
+            "description": "<p>The ids of the genes in the signature</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>Numberic[]</p> ",
+            "optional": false,
+            "field": "zscores",
+            "description": "<p>The scores</p> "
+          }
+        ]
+      }
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "<p>string</p> ",
+            "optional": false,
+            "field": "cas",
+            "description": "<p>CAS number</p> "
+          }
+        ]
+      }
+    },
+    "version": "0.0.0",
+    "filename": "bin/app.js",
+    "groupTitle": "LINCS"
+  },
+  {
     "type": "GET",
     "url": "/LINCS/summaries",
     "title": "Request summary docs by document index (1..N)",
