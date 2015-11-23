@@ -47,8 +47,8 @@ define({ "api": [
             "group": "Success 200",
             "type": "<p>string</p> ",
             "optional": false,
-            "field": "Instance",
-            "description": "<p>ids  in JSON format</p> "
+            "field": "instances",
+            "description": "<p>Instance ids  in JSON format</p> "
           }
         ]
       },
@@ -110,7 +110,7 @@ define({ "api": [
   },
   {
     "type": "get",
-    "url": "/LINCS/nixrange",
+    "url": "/LINCS/nidrange",
     "title": "Request range of numerical index.",
     "description": "<p>Remember that the numerical indices are used for rapid paging/chunking.  They are NOT necessarily uniqe, NOT contiguous, and NOT in any sort of order.  But they are FAST.</p> ",
     "name": "nixrange",
