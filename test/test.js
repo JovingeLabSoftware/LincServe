@@ -69,7 +69,7 @@ describe('LINCS methods', function() {
 
   //lincs.instSamePlateVehicles("RAD001_MCF7_24H_X3_F1B5_DUO52HI53LO:N02")
   it('retrieves an instance', function(done) {
-  client.get('/LINCS/instances/RAD001_MCF7_24H_X3_F1B5_DUO52HI53LO:N02', function(err, req, res, data) {
+  client.get('/LINCS/instances/CPC006_SNUC4_6H_X1_F2B4_DUO52HI53LO:K08', function(err, req, res, data) {
       if (err) {
           throw err;
       } else {
@@ -80,9 +80,19 @@ describe('LINCS methods', function() {
     });
   });
   
-  
-  //["A375","BRD-K73037408",2.5,6] "BMP7", 100, 2, 0, 5)
-  
+  it('retrieves control data for given instance', function(done) {
+  client.get('/LINCS/instances/CPC006_SNUC4_6H_X1_F2B4_DUO52HI53LO:K08/controls', function(err, req, res, data) {
+      if (err) {
+          throw err;
+      } else {
+        checkResponse(res);
+        assert.ok(data[0].value.metadata);
+        assert.equal(data.length, 14);
+        done();
+      }
+    });
+  });
+
   it('retrieves all instances with the specified perturbation', function(done) {
   client.get('/LINCS/instances?cell="SNUC4"&pert="Rottlerin"&dose=9.68&duration=6', function(err, req, res, data) {
       if (err) {
@@ -119,9 +129,9 @@ describe('LINCS methods', function() {
       if (err) {
           throw err;
       } else {
-            checkResponse(res);
-            assert.ok(data.cas);
-            done();
+          checkResponse(res);
+          assert.ok(data.cas);
+          done();
       }
     });
   });

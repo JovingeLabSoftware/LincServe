@@ -1,6 +1,50 @@
 [
   {
     "type": "GET",
+    "url": "/LINCS/instances/:id/controls",
+    "title": "Retrieve control data",
+    "name": "getControls",
+    "group": "LINCS",
+    "description": "<p>Retrieves the full data document for each instance on the same plate as :id whose perturbagen is the appropriate control for that instance (including time of exposure and cell line).</p> ",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "id",
+            "description": "<p>of instance for which controls are desired.</p> "
+          }
+        ]
+      }
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "<p>string</p> ",
+            "optional": false,
+            "field": "data",
+            "description": "<p>Document in JSON format</p> "
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response (note array): ",
+          "content": "{\n[\"gene_ids\": [\n    \"200814_at\",\n    \"222103_at\",\n    \"...truncated...\"\n    ],\n\"metadata\": {\n    \"bead_batch\": \"b3\",\n    \"bead_revision\": \"r2\",\n    \"bead_set\": \"dp52,dp53\",\n    \"cell_id\": \"HCC515\",\n    \"...truncated...\"\n},\n\"norm_exp\": [\n    9.15469932556152,\n    9.05399990081787,\n    \"...truncated...\"\n    ]\n },\n \"...truncated...\"\n]",
+          "type": "Object"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "bin/app.js",
+    "groupTitle": "LINCS"
+  },
+  {
+    "type": "GET",
     "url": "/LINCS/instances",
     "title": "Retrieve instance ids by perturbagen or range",
     "name": "getInstance",
@@ -66,7 +110,7 @@
   },
   {
     "type": "GET",
-    "url": "/LINCS/:id",
+    "url": "/LINCS/instances/:id",
     "title": "Retrieve data document by id",
     "name": "getdata",
     "group": "LINCS",

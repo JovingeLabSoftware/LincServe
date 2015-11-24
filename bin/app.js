@@ -307,7 +307,7 @@ server.get('/LINCS/instances/:id', function(req, res){
 server.get('/LINCS/instances/:id/controls', function(req, res){
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    lincs.getExpression(req.params.id, function(err, data) {
+    lincs.instSamePlateVehicles(req.params.id, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
