@@ -22,7 +22,7 @@ server.use(restify.queryParser());
  * @apiSuccess {string} OK.  Send GET to /LINCS for further documentation.
  */
 server.get('/', function(req, res){
-    res.send(200, "OK.  Send GET to /LINCS for further documentation.");
+    res.send(200, "OK!  Send GET to /LINCS for further documentation.");
 });
 
 /**
@@ -37,7 +37,7 @@ server.get('/LINCS', function(req, res){
 });
 
 /**
- * @api {get} /LINCS/nixrange Request range of numerical index.
+ * @api {get} /LINCS/nidrange Request range of numerical index.
  * @apiDescription Remember that the numerical indices are used for 
  *  rapid paging/chunking.  They are NOT necessarily uniqe, NOT 
  *  contiguous, and NOT in any sort of order.  But they are FAST.
@@ -164,6 +164,7 @@ server.get('/LINCS/summaries', function(req, res){
  * ]
  */
 server.get('LINCS/instances', function(req, res) {
+    console.log(req.params)
     req.params = dequote(req.params);
     var limit = req.params.limit || 1000;
     var skip = req.params.skip || 0;
@@ -178,11 +179,52 @@ server.get('LINCS/instances', function(req, res) {
             res.send(400, err);
         } else {
             res.send(200, data);
+            console.log(data);
         }
     });
 });
 
 
+/**
+ * @api {POST} /LINCS/zscores Save zscores to database
+ * @apiName setZScores
+ * @apiGroup LINCS
+ * @apiDescription Saves z-score document to document stre.
+ * 
+ * @apiParam {String} pert Name of perturbagen.
+ * @apiParam {String} cell Name of cell line.  
+ * @apiParam {Numeric} dose Dose, without units.  
+ * @apiParam {Numeric} duration Duration, without units.  
+ * @apiParam {Boolean} gold Is this signature derived from gold instances?  
+ * @apiParam {String} type The type of zscore, e.g. "ZSVC_L1000"
+ * @apiParam {String[]} gene_ids The ids of the genes in the signature
+ * @apiParam {Numberic[]} zscores The scores
+ * @apiSuccess {string} cas CAS number
+ */
+server.post('LINCS/zscores', function(req, res) {
+    req.params = dequote(req.params);
+    var cell_line = req.params.cell;
+    var pert = req.params.pert;
+    var dose = req.params.dose;
+    var duration = req.params.duration;
+    var gene_ids = req.params.gene_ids;
+    var zscores = req.params.zscores;
+    var type = req.params.type;
+    var gold = req.params.gold || false;
+    if(!cell_line || !pert || !type || !dose || !duration) {
+        res.send(400, "Must specify cell_line, pert, dose, duration, and score type when inserting Z-score document");
+    }
+    lincs.saveZScores(cell_line, pert, dose, duration, type, gene_ids, zscores, gold,
+        function(err, data) {
+        if(err) {
+            res.send(400, err);
+        } else {
+            res.send(200, data);
+        }
+    });
+});
+
+                                           
 /**
  * @api {GET} /LINCS/:id Retrieve data document by id 
  * @apiName getdata
@@ -191,7 +233,7 @@ server.get('LINCS/instances', function(req, res) {
  *
  * @apiParam {String} id of desired instance.
  *
- * @apiSuccess {string} summaries Summary docs in JSON format
+ * @apiSuccess {string} data Document in JSON format
  * @apiSuccessExample {Object} Success-Response: 
  * {
  * "gene_ids": [

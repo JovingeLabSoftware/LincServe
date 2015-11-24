@@ -5,10 +5,77 @@ tryCatch({detach('package:httr')}, error = function(e) {})
 library(httr)
 tryCatch({detach('package:rjson')}, error = function(e) {})
 library(rjson)
+library(tidyjson)
+library(dplyr)
+
+config <- fromJSON(file="./config.json")
+url <- paste("http://", config$couch_url, ":", config$couch_port, "/query/service", sep="")
+rest <- config$lincs_rest
 
 
-config <- fromJSON(file="../../config.json")
-url <- paste(config$couch_url, ":", config$couch_port, "/query/service", sep="")
+calc <- function() {
+  range <- content(GET( paste(rest, "/nidrange", sep="")))
+  step <- floor((range$max - range$min) / 200000);
+    
+  for(i in seq(0, range$max, step)) {
+    url <- paste(rest, "/summaries/nid?first=", i, "&last=", i+step, sep="")
+    res <- GET(url, query=list(first=i, last=i+step));
+    data <- summaryToDF(content(res, as = 'text'));
+
+    for(n in 1:nrow(data)) {
+        param = data[n,]
+        if(param$type == "trt_cp" && param$desc != "-666") {
+          mm <- meanExpression(pert = param$desc, cell = param$cell, dose = param$dose, duration = param$time)
+          hold <- 1          
+        }
+      }
+  }  
+}
+
+
+meanExpression <- function(pert, 
+                           cell, 
+                           dose, 
+                           duration, 
+                           gold=TRUE) { 
+  
+  query <- list(pert = pert, cell=cell, dose=dose, duration=duration, gold=gold)
+  res <- GET(paste(rest, "/instances", sep=""), query=query)
+  data <- gsub('\"', '"', content(res, "text")) # need to get rid of escapes
+  data <- data %>% 
+    gather_array %>% 
+    spread_values(id = jstring("id")) %>%
+    select(id)
+  rv = numeric();
+  for(id in data$id) {
+    res <- GET(paste(rest, "/", id, sep=""))
+    rv <- cbind(rv, unlist(content(res, 'parsed')$norm_exp))    
+  }
+  rownames(rv) <- unlist(content(res, 'parsed')$gene_ids)
+  rv
+}
+
+
+
+
+summaryToDF <- function(json) {
+  data <- gsub('\"', '"', json) # need to get rid of escapes
+  print(data)
+  data <- data %>% 
+    gather_array %>% 
+    spread_values(id = jstring("id")) %>%
+    enter_object("summary") %>%
+    spread_values(
+      cell = jstring("cell_id"),
+      desc = jstring("pert_desc"),
+      type = jstring("pert_type"),
+      dose = jnumber("pert_dose"),
+      time = jnumber("pert_time"),
+      vehicle = jnumber("pert_vehicle")
+    ) %>%
+    select(id, desc, type, cell, dose, time)
+  data  
+}
 
 # careful now...
 flush <- function() {

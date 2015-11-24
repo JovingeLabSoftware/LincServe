@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li><li data-type='method'><a href="LINCS.html#getZSVC">getZSVC</a></li><li data-type='method'><a href="LINCS.html#saveZScores">saveZScores</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -1415,6 +1415,595 @@ on a view is much faster, and using key ranges is even faster.</p>
 
 
         
+            
+
+    
+
+    <h4 class="name" id="getZSVC"><span class="type-signature"></span>getZSVC<span class="signature">(cell_line, pert, dose, time, gold, cb)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Get zscores (vs. vehicle control) matching specified cell line and perturbagen.
+Note that the view this function queries has a compound key.  Therefore,
+if perturbagen (pert) is specified, cell_line must also be specified.
+Similarly, if dose and time are specified, perturbagen and cell line 
+must also be specified.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>cell_line</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>ID of cell lines. Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>pert</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Name of perturbagen. Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dose</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">numeric</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Dose (numeric, unitless).  Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>time</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">numeric</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Duration of exposure (numeric, unitless). Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>gold</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Should query be restricted to gold instances. If null,
+                      defaults to true.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cb</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Call back to be called upon completion of async call.<br>                      Optional--can use promises instead.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line276">line 276</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="saveZScores"><span class="type-signature"></span>saveZScores<span class="signature">(id, cell_line, pert, dose, time, type, gene_ids, zscores, gold, cb)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Insert a z score document into the document store.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>id</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>ID of the signature.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cell_line</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>ID of cell lines. Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>pert</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Name of perturbagen. Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dose</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">numeric</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Dose (numeric, unitless).  Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>time</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">numeric</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Duration of exposure (numeric, unitless). Can be null.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Type of zscore, e.g. &quot;ZSVC_L1000&quot;</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>gene_ids</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;string></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Gene identifiers corresponding to scores</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>zscores</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;numeric></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The scores.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>gold</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Is this a gold signature? Can be null</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cb</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Call back to be called upon completion of async call.  Optional--can use promises instead.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line335">line 335</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
     
 
     
@@ -1432,7 +2021,7 @@ on a view is much faster, and using key ranges is even faster.</p>
 <br class="clear">
 
 <footer>
-    Documentation generated at Mon Nov 23 2015 15:31:01 GMT+0000 (UTC)
+    Documentation generated at Mon Nov 23 2015 21:04:18 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>

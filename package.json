@@ -5,6 +5,7 @@
   "main": "bin/app.js",
   "scripts": {
     "test": "mocha",
+    "start": "forever start bin/app.js --killSignal=SIGTERM -c nodemon --exitcrash",
     "docs": "jsdoc --configure .jsdoc.json --verbose; apidoc -i bin/ -o docs/api/",
     "doc_deploy": "cp -R docs/api/* ../CouchLincsDoc/CouchLincs/api; cp -R docs/CouchLincs/1.0.0/* ../CouchLincsDoc/CouchLincs/;"
   },

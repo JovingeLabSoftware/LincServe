@@ -63,7 +63,6 @@ describe('LINCS methods', function() {
       if (err) {
           throw err;
       } else {
-          // fetch about 0.001% of documents.
           client.get('/LINCS/summaries?skip=0&limit=' + 100, function(err, req, res, data) {
             if(err) throw(err);
             checkResponse(res);
@@ -103,7 +102,22 @@ describe('LINCS methods', function() {
     });
   });
 
-  
+  it('inserts zscore document', function(done) {
+  client.post('/LINCS/zscores', {cell: "A375", pert: "BRD-K73037408", duration: 24, dose: 2,  
+                                        gene_ids: ['GENE1', 'GENE2', 'GENE3'],
+                                        zscores: [12, 3, 4.1],
+                                        type: "test_sig",
+                                        gold: false}, 
+      function(err, req, res, data) {
+      if (err) {
+          throw err;
+      } else {
+            checkResponse(res);
+            assert.ok(data.cas);
+            done();
+      }
+    });
+  });
 });
 
 var checkResponse = function(res) {
