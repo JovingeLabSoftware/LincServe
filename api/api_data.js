@@ -91,8 +91,8 @@ define({ "api": [
             "group": "Success 200",
             "type": "<p>string</p> ",
             "optional": false,
-            "field": "summaries",
-            "description": "<p>Summary docs in JSON format</p> "
+            "field": "data",
+            "description": "<p>Document in JSON format</p> "
           }
         ]
       },

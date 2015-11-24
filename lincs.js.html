@@ -135,7 +135,7 @@ LINCS.prototype.getExpression = function(key, cb) {
 		if(err) {
 			deferred.reject(err);
 		} else {
-  		deferred.resolve(doc.value.norm_exp);
+  		deferred.resolve({gene_ids: doc.value.gene_ids, metadata: doc.value.metadata, norm_exp: doc.value.norm_exp});
 		}
 	});
 	deferred.promise.nodeify(cb);
@@ -273,10 +273,10 @@ LINCS.prototype.getByPert = function(cell_line,
     query = this.view.from('lincs', 'all_by_cell')
       .reduce(false).skip(skip || 0).limit(limit || 1000);
   }
-  
   query.options.startkey = JSON.stringify(startkey);  // query.range does not work 
                                                       // because it adds quotes
   query.options.endkey = JSON.stringify(endkey);  
+  console.log(query)
   
   if(!cell_line &amp;&amp; pert) {
     deferred.reject(new Error("Must specify cell line if perturbagen is specified"));
@@ -388,6 +388,7 @@ LINCS.prototype.saveZScores = function(cell_line,
         deferred.reject(new Error("Gene IDs length must match zscores length"));
   }
   var id = [cell_line, pert, dose, time, type].join("_");
+  console.log(id)
   this.bucket.upsert(id, {metadata: {cell_id: cell_line, pert_id: pert, 
                      pert_dose: dose, pert_time: time, type: type, is_gold: gold},
                      gene_ids: gene_ids,
@@ -430,7 +431,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Mon Nov 23 2015 21:04:18 GMT+0000 (UTC)
+    Documentation generated at Tue Nov 24 2015 15:05:56 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
