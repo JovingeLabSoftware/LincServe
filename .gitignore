@@ -19,6 +19,9 @@ config.json
 *~
 .Rproj.user
 
+# cloud 9 config files
+.c9
+
 # crash files
 erl_crash*
 
@@ -56,6 +59,7 @@ node_modules/lincs/*~
 !node_modules/lincs/*
 !node_modules/lincs/*/**
 node_modules/lincs/node_modules
+node_modules/lincs/.c9
 
 # Optional npm cache directory
 .npm
