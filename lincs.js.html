@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li><li data-type='method'><a href="LINCS.html#getZSVC">getZSVC</a></li><li data-type='method'><a href="LINCS.html#saveZScores">saveZScores</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getPerturbagens">getPerturbagens</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li><li data-type='method'><a href="LINCS.html#getZSVC">getZSVC</a></li><li data-type='method'><a href="LINCS.html#instSamePlateVehicles">instSamePlateVehicles</a></li><li data-type='method'><a href="LINCS.html#saveZScores">saveZScores</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -117,12 +117,54 @@ LINCS.prototype.getVehicle = function(key, cb) {
   		if(err) {
   			deferred.reject(err);
   		} else {
-	  		deferred.resolve(doc.value.metadata.pert_vehicle);
+	  		deferred.resolve({vehicle: doc.value.metadata.pert_vehicle, 
+	  		                  pert_time: doc.value.metadata.pert_time});
   		}
   	});
   	deferred.promise.nodeify(cb);
   	return deferred.promise;
 };
+
+/**
+ * Get the vehicle instances for a given instance on the same plate
+ * @param {string} key The key of the desired instance
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+
+LINCS.prototype.instSamePlateVehicles = function(key, cb) {
+	var deferred = Q.defer();
+	var _self = this;
+	this.getVehicle(key)
+	.then(function(v) {
+    var plate = key.replace(/\:.*/, "");
+    var query = _self.view.from('lincs', 'vehicle_by_plate')
+        .reduce(false).key( [plate, v.vehicle, v.pert_time]);
+    _self.bucket.query(query, function(err, results) { 
+      if(err) {
+        deferred.reject(err);
+      } else {
+        var ids = results.map(function(r) {
+          return(r.id);
+        });
+        Q.all(ids.map(function(id) {
+          var d = Q.defer();
+          _self.bucket.get(id, function(err, results) {
+            if(err) {
+              d.reject(err);
+            } else {
+              d.resolve(results);
+            }
+          });
+          return(d.promise);
+        }))
+        .then(deferred.resolve);
+      }
+    });
+	});
+	deferred.promise.nodeify(cb);
+  return deferred.promise;
+};
+
 
 /**
  * Get the Q2NORM data for a given instance (L1000 only)
@@ -264,7 +306,7 @@ LINCS.prototype.getByPert = function(cell_line,
   var deferred = Q.defer();
   var startkey = [cell_line || "", pert || "", dose || -999, time || -999];
   var endkey = [cell_line || "\uefff", pert || "\uefff", dose || 9999, time || 9999];
-  gold = gold || true;
+  gold = gold || false;
   
   if(gold) {
     query = this.view.from('lincs', 'gold_by_cell')
@@ -276,8 +318,7 @@ LINCS.prototype.getByPert = function(cell_line,
   query.options.startkey = JSON.stringify(startkey);  // query.range does not work 
                                                       // because it adds quotes
   query.options.endkey = JSON.stringify(endkey);  
-  console.log(query)
-  
+
   if(!cell_line &amp;&amp; pert) {
     deferred.reject(new Error("Must specify cell line if perturbagen is specified"));
   } else if((dose || time) &amp;&amp; (!pert || !cell_line)) {
@@ -388,7 +429,6 @@ LINCS.prototype.saveZScores = function(cell_line,
         deferred.reject(new Error("Gene IDs length must match zscores length"));
   }
   var id = [cell_line, pert, dose, time, type].join("_");
-  console.log(id)
   this.bucket.upsert(id, {metadata: {cell_id: cell_line, pert_id: pert, 
                      pert_dose: dose, pert_time: time, type: type, is_gold: gold},
                      gene_ids: gene_ids,
@@ -431,7 +471,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Tue Nov 24 2015 15:05:56 GMT+0000 (UTC)
+    Documentation generated at Tue Nov 24 2015 20:18:57 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
