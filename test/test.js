@@ -59,44 +59,51 @@ describe('LINCS methods', function() {
   });
 
   it('retrieves range of documents by document index (1..N)', function(done) {
-  client.get('/LINCS/nidrange', function(err, req, res, data) {
-      if (err) {
-          throw err;
-      } else {
-          client.get('/LINCS/summaries?skip=0&limit=' + 100, function(err, req, res, data) {
-            if(err) throw(err);
-            checkResponse(res);
-            assert.ok(data[0]);
-            assert.equal(data.length, 100);
-            done();
-          });
-      }
+    client.get('/LINCS/summaries?skip=0&limit=10', function(err, req, res, data) {
+      if(err) throw(err);
+      checkResponse(res);
+      assert.equal(data.length, 10);
+      done();
     });
   });
 
+  //lincs.instSamePlateVehicles("RAD001_MCF7_24H_X3_F1B5_DUO52HI53LO:N02")
+  it('retrieves an instance', function(done) {
+  client.get('/LINCS/instances/RAD001_MCF7_24H_X3_F1B5_DUO52HI53LO:N02', function(err, req, res, data) {
+      if (err) {
+          throw err;
+      } else {
+        checkResponse(res);
+        assert.ok(data.metadata);
+        done();
+      }
+    });
+  });
+  
+  
   //["A375","BRD-K73037408",2.5,6] "BMP7", 100, 2, 0, 5)
   
   it('retrieves all instances with the specified perturbation', function(done) {
-  client.get('/LINCS/instances?cell="A375"&pert="BRD-K73037408"&dose=2.5&duration=6', function(err, req, res, data) {
+  client.get('/LINCS/instances?cell="SNUC4"&pert="Rottlerin"&dose=9.68&duration=6', function(err, req, res, data) {
       if (err) {
           throw err;
       } else {
             checkResponse(res);
             assert.ok(data[0]);
-            assert.equal(data.length, 9);
+            assert.equal(data.length, 2);
             done();
       }
     });
   });
   
   it('retrieves all instances with the specified perturbation but any dose or duration', function(done) {
-  client.get('/LINCS/instances?cell="A375"&pert="BRD-K73037408"', function(err, req, res, data) {
+  client.get('/LINCS/instances?cell="SNUC4"&pert="Rottlerin"', function(err, req, res, data) {
       if (err) {
           throw err;
       } else {
             checkResponse(res);
             assert.ok(data[0]);
-            assert.equal(data.length, 53);
+            assert.equal(data.length, 2);
             done();
       }
     });

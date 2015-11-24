@@ -164,7 +164,6 @@ server.get('/LINCS/summaries', function(req, res){
  * ]
  */
 server.get('LINCS/instances', function(req, res) {
-    console.log(req.params)
     req.params = dequote(req.params);
     var limit = req.params.limit || 1000;
     var skip = req.params.skip || 0;
@@ -172,14 +171,18 @@ server.get('LINCS/instances', function(req, res) {
     var pert = req.params.pert || null;
     var dose = req.params.dose || null;
     var duration = req.params.duration || null;
-    var gold = req.params.gold || null;
+    var gold;
+    if (req.params.gold) {
+        gold = JSON.parse(String(req.params.gold));
+    } else {
+        gold = null;
+    }
     lincs.getByPert(cell_line, pert, Number(dose), Number(duration), Number(skip), Number(limit), gold, 
                     function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
             res.send(200, data);
-            console.log(data);
         }
     });
 });
@@ -226,7 +229,7 @@ server.post('LINCS/zscores', function(req, res) {
 
                                            
 /**
- * @api {GET} /LINCS/:id Retrieve data document by id 
+ * @api {GET} /LINCS/instances/:id Retrieve data document by id 
  * @apiName getdata
  * @apiGroup LINCS
  * @apiDescription Retrieves gene ids, Q2Norm data, and metadata
@@ -255,7 +258,53 @@ server.post('LINCS/zscores', function(req, res) {
  *     ]
  *  }
  */
-server.get('/LINCS/:id', function(req, res){
+server.get('/LINCS/instances/:id', function(req, res){
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    lincs.getExpression(req.params.id, function(err, data) {
+        if(err) {
+            res.send(400, err);
+        } else {
+            res.send(200, data);
+        }
+    });
+});
+
+/**
+ * @api {GET} /LINCS/instances/:id/controls Retrieve control data 
+ * @apiName getControls
+ * @apiGroup LINCS
+ * @apiDescription Retrieves the full data document for each instance on the 
+ * same plate as :id whose perturbagen is the appropriate control for that 
+ * instance (including time of exposure and cell line). 
+ *
+ * @apiParam {String} id of instance for which controls are desired.
+ *
+ * @apiSuccess {string} data Document in JSON format
+ * @apiSuccessExample {Object} Success-Response (note array): 
+ * {
+ * ["gene_ids": [
+ *     "200814_at",
+ *     "222103_at",
+ *     "...truncated..."
+ *     ],
+ * "metadata": {
+ *     "bead_batch": "b3",
+ *     "bead_revision": "r2",
+ *     "bead_set": "dp52,dp53",
+ *     "cell_id": "HCC515",
+ *     "...truncated..."
+ * },
+ * "norm_exp": [
+ *     9.15469932556152,
+ *     9.05399990081787,
+ *     "...truncated..."
+ *     ]
+ *  },
+ *  "...truncated..."
+ * ]
+ */
+server.get('/LINCS/instances/:id/controls', function(req, res){
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
     lincs.getExpression(req.params.id, function(err, data) {

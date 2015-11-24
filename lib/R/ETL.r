@@ -12,6 +12,20 @@ config <- fromJSON(file="./config.json")
 url <- paste("http://", config$couch_url, ":", config$couch_port, "/query/service", sep="")
 rest <- config$lincs_rest
 
+getVehicles <- function() {
+  range <- content(GET( paste(rest, "/nidrange", sep="")))
+  step <- floor((range$max - range$min) / 1000);
+  vehicles <- character()
+  for(i in seq(0, range$max, step)) {
+    url <- paste(rest, "/summaries/nid?first=", i, "&last=", i+step, sep="")
+    res <- GET(url, query=list(first=i, last=i+step));
+    data <- summaryToDF(content(res, as = 'text'));
+    vehicles <- unique(c(vehicles, data$vehicle))
+    print(paste(i, "of", range$max, ":"))
+    print(vehicles)
+  }  
+  vehicles
+}
 
 calc <- function() {
   range <- content(GET( paste(rest, "/nidrange", sep="")))
@@ -23,12 +37,13 @@ calc <- function() {
     data <- summaryToDF(content(res, as = 'text'));
 
     for(n in 1:nrow(data)) {
-        param = data[n,]
-        if(param$type == "trt_cp" && param$desc != "-666") {
-          mm <- meanExpression(pert = param$desc, cell = param$cell, dose = param$dose, duration = param$time)
-          hold <- 1          
-        }
+      param = data[n,]
+      if(param$type == "trt_cp" && param$desc != "-666") {
+        mean_pert <- meanExpression(pert = param$desc, cell = param$cell, dose = param$dose, duration = param$time)
+        mean_veh <- meanExpression(pert = param$vehicle, cell = param$cell, dose=-666, duration=param$time, gold=FALSE)
+        hold <- 1          
       }
+    }
   }  
 }
 
@@ -39,7 +54,7 @@ meanExpression <- function(pert,
                            duration, 
                            gold=TRUE) { 
   
-  query <- list(pert = pert, cell=cell, dose=dose, duration=duration, gold=gold)
+  query <- list(pert = pert, cell=cell, dose=dose, duration=duration, gold=gold, limit=10000)
   res <- GET(paste(rest, "/instances", sep=""), query=query)
   data <- gsub('\"', '"', content(res, "text")) # need to get rid of escapes
   data <- data %>% 
@@ -60,7 +75,6 @@ meanExpression <- function(pert,
 
 summaryToDF <- function(json) {
   data <- gsub('\"', '"', json) # need to get rid of escapes
-  print(data)
   data <- data %>% 
     gather_array %>% 
     spread_values(id = jstring("id")) %>%
@@ -71,9 +85,9 @@ summaryToDF <- function(json) {
       type = jstring("pert_type"),
       dose = jnumber("pert_dose"),
       time = jnumber("pert_time"),
-      vehicle = jnumber("pert_vehicle")
+      vehicle = jstring("pert_vehicle")
     ) %>%
-    select(id, desc, type, cell, dose, time)
+    select(id, desc, type, cell, dose, time, vehicle)
   data  
 }
 
