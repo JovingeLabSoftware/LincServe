@@ -12,21 +12,6 @@ config <- fromJSON(file="./config.json")
 url <- paste("http://", config$couch_url, ":", config$couch_port, "/query/service", sep="")
 rest <- config$lincs_rest
 
-getVehicles <- function() {
-  range <- content(GET( paste(rest, "/nidrange", sep="")))
-  step <- floor((range$max - range$min) / 1000);
-  vehicles <- character()
-  for(i in seq(0, range$max, step)) {
-    url <- paste(rest, "/summaries/nid?first=", i, "&last=", i+step, sep="")
-    res <- GET(url, query=list(first=i, last=i+step));
-    data <- summaryToDF(content(res, as = 'text'));
-    vehicles <- unique(c(vehicles, data$vehicle))
-    print(paste(i, "of", range$max, ":"))
-    print(vehicles)
-  }  
-  vehicles
-}
-
 calc <- function() {
   range <- content(GET( paste(rest, "/nidrange", sep="")))
   step <- floor((range$max - range$min) / 200000);
@@ -34,44 +19,61 @@ calc <- function() {
   for(i in seq(0, range$max, step)) {
     url <- paste(rest, "/summaries/nid?first=", i, "&last=", i+step, sep="")
     res <- GET(url, query=list(first=i, last=i+step));
-    data <- summaryToDF(content(res, as = 'text'));
-
-    for(n in 1:nrow(data)) {
-      param = data[n,]
-      if(param$type == "trt_cp" && param$desc != "-666") {
-        mean_pert <- meanExpression(pert = param$desc, cell = param$cell, dose = param$dose, duration = param$time)
-        mean_veh <- meanExpression(pert = param$vehicle, cell = param$cell, dose=-666, duration=param$time, gold=FALSE)
-        hold <- 1          
+    data <- summaryToDF(content(res, as = 'text'));  
+    for(ii in 1:nrow(data)) {
+      param = data[ii,]
+      if(param$type == "trt_cp" && param$desc != "-666" && param$gold) {
+        instances <- getReplicates(pert = param$desc, cell = param$cell, dose = param$dose, duration = param$time)
+        scores <- do.call(cbind, lapply(instances$id, ZbyPlate))
+        gids <- rownames(scores)
+        scores <- apply(scores, 1, mean)
+        saveDoc(param$cell, param$desc, param$dose, param$time, gids, scores, "ZSVC_L1000", "1.0", "true")
       }
     }
   }  
 }
 
 
-meanExpression <- function(pert, 
-                           cell, 
-                           dose, 
-                           duration, 
-                           gold=TRUE) { 
-  
+getReplicates <- function(pert, 
+                          cell, 
+                          dose, 
+                          duration, 
+                          gold=TRUE) { 
   query <- list(pert = pert, cell=cell, dose=dose, duration=duration, gold=gold, limit=10000)
   res <- GET(paste(rest, "/instances", sep=""), query=query)
   data <- gsub('\"', '"', content(res, "text")) # need to get rid of escapes
-  data <- data %>% 
+  ids <- data %>% 
     gather_array %>% 
     spread_values(id = jstring("id")) %>%
     select(id)
-  rv = numeric();
-  for(id in data$id) {
-    res <- GET(paste(rest, "/", id, sep=""))
-    rv <- cbind(rv, unlist(content(res, 'parsed')$norm_exp))    
-  }
-  rownames(rv) <- unlist(content(res, 'parsed')$gene_ids)
-  rv
+  ids
 }
 
+ZbyPlate <- function(id) {
+  ctrl <- getPlateControls(id)
+  ctrl.m <- apply(ctrl, 1, mean)
+  save(ctrl.m, file=tempfile(fileext = "rda"))
+  url <- paste(rest, "/instances/", id, sep="")
+  print(url)
+  exp <- GET(url)
+  exp <- gsub('\"', '"', content(exp, "text")) # need to get rid of escapes 
+  geneids <- fromJSON(exp)$gene_ids
+  exp <- fromJSON(exp)$norm_exp
+  fc <- log2(exp/ctrl.m)
+  fc <- (fc - median(fc)) / mad(fc)
+  names(fc) <- geneids
+  fc
+}
 
-
+getPlateControls <- function(id) {
+  veh <- GET(paste(rest, "/instances/", id, "/controls", sep=""))
+  veh <- gsub('\"', '"', content(veh, "text")) # need to get rid of escapes 
+  veh <- fromJSON(veh)
+  f <- function(x) {
+    return(x$value$norm_exp);
+  }
+  return(do.call(cbind, lapply(veh, f)))
+}
 
 summaryToDF <- function(json) {
   data <- gsub('\"', '"', json) # need to get rid of escapes
@@ -85,10 +87,26 @@ summaryToDF <- function(json) {
       type = jstring("pert_type"),
       dose = jnumber("pert_dose"),
       time = jnumber("pert_time"),
-      vehicle = jstring("pert_vehicle")
+      vehicle = jstring("pert_vehicle"),
+      gold = jlogical("is_gold")
     ) %>%
-    select(id, desc, type, cell, dose, time, vehicle)
+    select(id, desc, type, cell, dose, time, vehicle, gold)
   data  
+}
+
+saveDoc <- function(cell_line, pert, dose, duration, gene_ids, zscores, type, version, gold) {
+  url <- paste(rest, "/zscores", sep="")
+  query=list(cell_line = cell_line, 
+             pert = pert, 
+             dose = dose, 
+             duration = duration,
+             gene_ids = toJSON(as.vector(gene_ids)),
+             zscores = toJSON(as.vector(zscores)),
+             type = type,
+             version = version,
+             gold = gold)
+  res <- POST(url, query=query);
+  res
 }
 
 # careful now...

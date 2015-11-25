@@ -173,7 +173,7 @@ server.get('LINCS/instances', function(req, res) {
     var duration = req.params.duration || null;
     var gold;
     if (req.params.gold) {
-        gold = JSON.parse(String(req.params.gold));
+        gold = JSON.parse(String(req.params.gold).toLowerCase());
     } else {
         gold = null;
     }
@@ -205,19 +205,19 @@ server.get('LINCS/instances', function(req, res) {
  * @apiSuccess {string} cas CAS number
  */
 server.post('LINCS/zscores', function(req, res) {
-    req.params = dequote(req.params);
-    var cell_line = req.params.cell;
+    var cell_line = req.params.cell_line;
     var pert = req.params.pert;
     var dose = req.params.dose;
     var duration = req.params.duration;
     var gene_ids = req.params.gene_ids;
     var zscores = req.params.zscores;
     var type = req.params.type;
+    var version = req.params.version;
     var gold = req.params.gold || false;
     if(!cell_line || !pert || !type || !dose || !duration) {
         res.send(400, "Must specify cell_line, pert, dose, duration, and score type when inserting Z-score document");
     }
-    lincs.saveZScores(cell_line, pert, dose, duration, type, gene_ids, zscores, gold,
+    lincs.saveZScores(cell_line, pert, dose, duration, type, gene_ids, zscores, version, gold,
         function(err, data) {
         if(err) {
             res.send(400, err);
@@ -315,8 +315,6 @@ server.get('/LINCS/instances/:id/controls', function(req, res){
         }
     });
 });
-
-//["A375","BRD-K73037408",2.5,6]
 
 var port = config.port; // should get from config file some day
 
