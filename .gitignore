@@ -18,6 +18,7 @@ config.json
 # temp files
 *~
 .Rproj.user
+\#*#
 
 # cloud 9 config files
 .c9
@@ -26,6 +27,8 @@ config.json
 erl_crash*
 
 # Logs
+log
+./**/*.txt
 logs
 *.log
 npm-debug.log*
