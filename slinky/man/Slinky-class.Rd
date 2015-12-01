@@ -60,6 +60,16 @@ Default is \code{all}.}
 \subsection{Return Value}{dataframe containing normalized gene expression
                            for controls.}}
 
+\item{\code{loadLevel2(gctxfile = "gex_epsilon_n1429794x978.gctx",
+  infofile = "inst.info", col)}}{Load data for specified column from hdf5 formatted file (.gctx) from LINCS Fetch 
+ into your document store via RESTful interface.
+\subsection{Parameters}{
+\itemize{
+\item{\code{gctxfile} Path to level 2 gctx file. Default is \code{./gex_epsilon_n1429794x978.gctx}.}
+\item{\code{gctxfile} Path to instance info file. Default is \code{./inst.info}.}
+}}
+\subsection{Return Value}{None. Loads data into document store.}}
+
 \item{\code{setIp(ip = "127.0.0.1")}}{Set IP and redefine endpoint
 \subsection{Parameters}{
 \itemize{

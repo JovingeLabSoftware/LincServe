@@ -171,6 +171,45 @@ Slinky$methods(getPlateControls = function(id) {
   }
 })
 
+
+
+Slinky$methods(loadLevel2 = function(gctxfile = "gex_epsilon_n1429794x978.gctx", infofile = "inst.info", col) {
+  "Load data for specified column from hdf5 formatted file (.gctx) from LINCS Fetch 
+   into your document store via RESTful interface.
+  \\subsection{Parameters}{
+  \\itemize{
+  \\item{\\code{gctxfile} Path to level 2 gctx file. Default is \\code{./gex_epsilon_n1429794x978.gctx}.}
+  \\item{\\code{gctxfile} Path to instance info file. Default is \\code{./inst.info}.}
+  }}
+  \\subsection{Return Value}{None. Loads data into document store.}"
+  
+  if(!exists('metadat')) {
+    data("metadata")
+  }
+  
+  data <- h5read("../../../q2norm_n1328098x22268.gctx", "0/DATA/0/matrix", index=list(c(1:978), col))
+  ids <- h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/ROW/id", index=list(c(1:978)))
+  ids <- gsub(" ", "", ids)
+  colids <- h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/COL/id", index=list(col))
+  colids <- gsub(" ", "", colids)
+  
+  # verify matching data
+  if(! sum(colids == md$distil_id[col]) == length(col)) {
+    stop("ID mismatch between metadata and expression data")
+  }
+  
+  doc <- list();
+  for(i in 1:length(col)) {
+    doc <- list( metadata = md[col[i],], gene_ids = ids, norm_exp = data[,i])
+    statement <- paste("INSERT INTO LINCS1 (KEY, VALUE) VALUES('", colids[i], "', ", toJSON(doc), ")", sep="");    
+    res <- POST(url, query=list(statement=statement))
+    if(status_code(res) != 200) {
+      print(paste("Error uploading document for", colids[i], sep=" "))
+    } 
+  }
+})
+
+
 #######################################
 #
 # private functions below
