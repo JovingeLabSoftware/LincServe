@@ -28,7 +28,7 @@ erl_crash*
 
 # Logs
 log
-./**/*.txt
+*.txt
 logs
 *.log
 npm-debug.log*
