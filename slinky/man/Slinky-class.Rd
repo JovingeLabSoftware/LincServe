@@ -76,6 +76,6 @@ Default is \code{all}.}
 }}
 \examples{
 lincs <- Slinky$new()
- lincs$calc()
+lincs$calc()
 }
 
