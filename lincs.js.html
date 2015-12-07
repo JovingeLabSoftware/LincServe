@@ -416,14 +416,14 @@ LINCS.prototype.savePert = function(doc, cb){
  * Insert an instance doc (e.g. level 2 data from LINCS) into the store.  
  * @param {string} id Desired document id (aka 'key')
  * @param {string} doc Document in JSON including type, metadata, gene_ids, 
- *                 expression, gold.  Type should indicate what type of data 
+ *                 expression.  Type should indicate what type of data 
  *                 this is, e.g. "q2norm"
  * @param {function} cb Call back to be called upon completion of async call.  
  *                       Optional--can use promises instead.
  */
 LINCS.prototype.saveInstance = function(id, doc, cb){
   var deferred = Q.defer();
-  if(!this._checkParams(doc, ['metadata', 'gene_ids', 'data', 'type', 'gold'])){
+  if(!this._checkParams(doc, ['metadata', 'gene_ids', 'data', 'type'])){
 
     deferred.reject(new Error("document did not contain required parameters (saveInstance"));
 
@@ -491,7 +491,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Mon Dec 07 2015 22:22:30 GMT+0000 (UTC)
+    Documentation generated at Mon Dec 07 2015 22:25:40 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>

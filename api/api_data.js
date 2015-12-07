@@ -248,8 +248,36 @@ define({ "api": [
             "group": "Parameter",
             "type": "<p>String</p> ",
             "optional": false,
-            "field": "doc",
-            "description": "<p>instance document including attributes metadata, type, gene_ids, data.  Type should describe the level of data, e.g. 'q2norm'.</p> "
+            "field": "id",
+            "description": "<p>desired id (key) of document</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "metadata",
+            "description": "<p>JSON from lincs</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "type",
+            "description": "<p>Type of data, e.g. &quot;q2norm&quot;</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>[String]</p> ",
+            "optional": false,
+            "field": "gene_ids",
+            "description": "<p>from lincs</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>[Numeric]</p> ",
+            "optional": false,
+            "field": "data",
+            "description": "<p>the expression data</p> "
           }
         ]
       }
