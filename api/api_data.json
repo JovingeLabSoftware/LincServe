@@ -197,50 +197,6 @@
     "groupTitle": "LINCS"
   },
   {
-    "type": "POST",
-    "url": "/LINCS/instances",
-    "title": "Save instance data to server",
-    "name": "getdata",
-    "group": "LINCS",
-    "description": "<p>Retrieves gene ids, Q2Norm data, and metadata</p> ",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "<p>String</p> ",
-            "optional": false,
-            "field": "doc",
-            "description": "<p>instance document including attributes id, metadata, type, gene_ids, data.</p> "
-          }
-        ]
-      }
-    },
-    "success": {
-      "fields": {
-        "Success 200": [
-          {
-            "group": "Success 200",
-            "type": "<p>string</p> ",
-            "optional": false,
-            "field": "response",
-            "description": "<p>response</p> "
-          }
-        ]
-      },
-      "examples": [
-        {
-          "title": "Success-Response: ",
-          "content": "HTTP/1.1 200 OK\n{\n}",
-          "type": "json"
-        }
-      ]
-    },
-    "version": "0.0.0",
-    "filename": "bin/app.js",
-    "groupTitle": "LINCS"
-  },
-  {
     "type": "get",
     "url": "/LINCS/nidrange",
     "title": "Request range of numerical index.",
@@ -270,6 +226,50 @@
         {
           "title": "Success-Response: ",
           "content": "HTTP/1.1 200 OK\n{\n[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',\n summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },\n{ id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',\n summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "bin/app.js",
+    "groupTitle": "LINCS"
+  },
+  {
+    "type": "POST",
+    "url": "/LINCS/instances",
+    "title": "Save instance data to server",
+    "name": "postInstance",
+    "group": "LINCS",
+    "description": "<p>Stores instance (e.g. level 2 data) on the server</p> ",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "doc",
+            "description": "<p>instance document including attributes metadata, type, gene_ids, data.</p> "
+          }
+        ]
+      }
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "<p>string</p> ",
+            "optional": false,
+            "field": "response",
+            "description": "<p>response</p> "
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response: ",
+          "content": "HTTP/1.1 200 OK\n{\n}",
           "type": "json"
         }
       ]
