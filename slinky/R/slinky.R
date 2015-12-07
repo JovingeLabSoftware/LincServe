@@ -173,7 +173,7 @@ Slinky$methods(getPlateControls = function(id) {
 
 
 
-Slinky$methods(loadLevel2 = function(gctxfile = "gex_epsilon_n1429794x978.gctx", infofile = "inst.info", col) {
+Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/gex_epsilon_n1429794x978.gctx", col) {
   "Load data for specified column from hdf5 formatted file (.gctx) from LINCS Fetch 
    into your document store via RESTful interface.
   \\subsection{Parameters}{
@@ -183,34 +183,34 @@ Slinky$methods(loadLevel2 = function(gctxfile = "gex_epsilon_n1429794x978.gctx",
   }}
   \\subsection{Return Value}{None. Loads data into document store.}"
   
-  if(!exists('metadat')) {
+  if(!exists('metadata')) {
     data("metadata")
   }
   
-  data <- h5read("../../../q2norm_n1328098x22268.gctx", "0/DATA/0/matrix", index=list(c(1:978), col))
-  ids <- h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/ROW/id", index=list(c(1:978)))
+  url <- paste(.self$.endpoint, "/instances", sep="")
+  data <- h5read(gctxfile, "0/DATA/0/matrix", index=list(c(1:978), col))
+  ids <- h5read(gctxfile, "/0/META/ROW/id", index=list(c(1:978)))
   ids <- gsub(" ", "", ids)
-  colids <- h5read("../../../q2norm_n1328098x22268.gctx", "/0/META/COL/id", index=list(col))
+  colids <- h5read(gctxfile, "/0/META/COL/id", index=list(col))
   colids <- gsub(" ", "", colids)
-  
-  # verify matching data
-  if(! sum(colids == md$distil_id[col]) == length(col)) {
-    stop("ID mismatch between metadata and expression data")
-  }
-  
+  ix <- match(colids, metadata[,1])
+  md <- metadata[ix,]
   doc <- list();
+  
+  
   for(i in 1:length(col)) {
-    doc <- list( metadata = md[col[i],], gene_ids = ids, norm_exp = data[,i])
-    statement <- paste("INSERT INTO LINCS1 (KEY, VALUE) VALUES('", colids[i], "', ", toJSON(doc), ")", sep="");    
-    res <- POST(url, query=list(statement=statement))
+    if(md[i,1] != colids[i]) stop("Metadata and expression data sample ids do not match")
+    res <- POST(url, query=list('id' = col[i], type="q2norm", metadata = md[i,], gene_ids = ids, data = data[,i]), 
+                  encode = "json", verbose=TRUE)
     if(status_code(res) != 200) {
       print(paste("Error uploading document for", colids[i], sep=" "))
     } 
+    print(content(res, type="text"))
   }
 })
 
 
-#######################################
+#----------------------------------------------------------------------------------------------------------------------
 #
 # private functions below
 #

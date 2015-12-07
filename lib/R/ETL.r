@@ -198,6 +198,7 @@ unique_drugs <- function() {
 
 load_from_hdf5 <- function(col) {
   h5read("/mnt/lincs/inst_info.gctx", "0/META/COL/id", index=list(2))
+  url <- paste("http://", config$couch_url, ":", config$couch_port, "/query/service", sep="")
   
   if(!exists('md')) {
     md <- readRDS("../../../ExpSpect/data/metadata.rds")

@@ -1,0 +1,17 @@
+Package: slinky
+Type: Package
+Title: Facilitates storage and analysis of LINCS data
+Version: 1.0
+Date: 2015-11-30
+Author: Eric J. Kort
+Maintainer: Who to complain to <eric.kort@vai.org>
+Depends: R (>= 3.1.0), rhdf5, httr, rjson, dplyr, tidyjson
+Collate: 'slinky.R'
+Suggests: knitr, testthat
+VignetteBuilder: knitr
+LazyData: true
+Description: Loads L1000 data from LINCS level 2 data file into document store and facilitates 
+             analysis of that data including calcuation of z-scores and enrichment analysis.
+License: MIT
+NeedsCompilation: no
+Packaged: 2015-12-02 23:17:44 UTC; lincs

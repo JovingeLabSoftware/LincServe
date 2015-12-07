@@ -21,7 +21,8 @@
   "homepage": "https://github.com/JovingeLabSoftware/CouchLincs",
   "dependencies": {
     "couchbase": "^2.1.2",
-    "restify": "^4.0.3"
+    "restify": "^4.0.3",
+    "q": "^1.4.1"
   },
   "devDependencies": {
     "jsdoc": "^3.3.3",

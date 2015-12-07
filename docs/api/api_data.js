@@ -1,5 +1,49 @@
 define({ "api": [
   {
+    "type": "POST",
+    "url": "/LINCS/pert",
+    "title": "Create a perturbation data document",
+    "name": "createPerturbation",
+    "group": "LINCS",
+    "description": "<p>Creates a data document for a particular perturbation &amp; calculation method</p> ",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "doc",
+            "description": "<p>JSON containing perturbagen, dose, duration, cell, method, gold, gene_ids, and data</p> "
+          }
+        ]
+      }
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "<p>string</p> ",
+            "optional": false,
+            "field": "Id",
+            "description": "<p>of created object</p> "
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response: ",
+          "content": "HTTP/1.1 201 Created\n{\n _id: 1\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "bin/app.js",
+    "groupTitle": "LINCS"
+  },
+  {
     "type": "GET",
     "url": "/LINCS/instances/:id/controls",
     "title": "Retrieve control data",
@@ -34,8 +78,8 @@ define({ "api": [
       "examples": [
         {
           "title": "Success-Response (note array): ",
-          "content": "{\n[\"gene_ids\": [\n    \"200814_at\",\n    \"222103_at\",\n    \"...truncated...\"\n    ],\n\"metadata\": {\n    \"bead_batch\": \"b3\",\n    \"bead_revision\": \"r2\",\n    \"bead_set\": \"dp52,dp53\",\n    \"cell_id\": \"HCC515\",\n    \"...truncated...\"\n},\n\"norm_exp\": [\n    9.15469932556152,\n    9.05399990081787,\n    \"...truncated...\"\n    ]\n },\n \"...truncated...\"\n]",
-          "type": "Object"
+          "content": "HTTP/1.1 200 OK\n{\n[\"gene_ids\": [\n    \"200814_at\",\n    \"222103_at\",\n    \"...truncated...\"\n    ],\n\"metadata\": {\n    \"bead_batch\": \"b3\",\n    \"bead_revision\": \"r2\",\n    \"bead_set\": \"dp52,dp53\",\n    \"cell_id\": \"HCC515\",\n    \"...truncated...\"\n},\n\"norm_exp\": [\n    9.15469932556152,\n    9.05399990081787,\n    \"...truncated...\"\n    ]\n },\n \"...truncated...\"\n]\n}",
+          "type": "json"
         }
       ]
     },
@@ -99,8 +143,8 @@ define({ "api": [
       "examples": [
         {
           "title": "Success-Response: ",
-          "content": "[ { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  \n   value:                                                                                                                     \n    { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08',                                                                   \n      vehicle: 'DMSO' },                                                                                                      \n   id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08' },                                                                           \n { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  \n   value:                                                                                                                     \n    { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A16',                                                                   \n      vehicle: 'DMSO' },                                                                                                      \n   id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A16' },   \n\n    \"...truncated...\"\n]",
-          "type": "Object"
+          "content": "HTTP/1.1 200 OK\n{\n[ { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  \n   value:                                                                                                                     \n    { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08',                                                                   \n      vehicle: 'DMSO' },                                                                                                      \n   id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08' },                                                                           \n { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  \n   value:                                                                                                                     \n    { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A16',                                                                   \n      vehicle: 'DMSO' },                                                                                                      \n   id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A16' },   \n\n    \"...truncated...\"\n]\n}",
+          "type": "json"
         }
       ]
     },
@@ -143,8 +187,8 @@ define({ "api": [
       "examples": [
         {
           "title": "Success-Response: ",
-          "content": "{\n\"gene_ids\": [\n    \"200814_at\",\n    \"222103_at\",\n    \"...truncated...\"\n    ],\n\"metadata\": {\n    \"bead_batch\": \"b3\",\n    \"bead_revision\": \"r2\",\n    \"bead_set\": \"dp52,dp53\",\n    \"cell_id\": \"HCC515\",\n    \"...truncated...\"\n},\n\"norm_exp\": [\n    9.15469932556152,\n    9.05399990081787,\n    \"...truncated...\"\n    ]\n }",
-          "type": "Object"
+          "content": "HTTP/1.1 200 OK\n{\n\"gene_ids\": [\n    \"200814_at\",\n    \"222103_at\",\n    \"...truncated...\"\n    ],\n\"metadata\": {\n    \"bead_batch\": \"b3\",\n    \"bead_revision\": \"r2\",\n    \"bead_set\": \"dp52,dp53\",\n    \"cell_id\": \"HCC515\",\n    \"...truncated...\"\n},\n\"norm_exp\": [\n    9.15469932556152,\n    9.05399990081787,\n    \"...truncated...\"\n    ]\n }",
+          "type": "json"
         }
       ]
     },
@@ -177,7 +221,14 @@ define({ "api": [
             "description": "<p>Largest index</p> "
           }
         ]
-      }
+      },
+      "examples": [
+        {
+          "title": "Success-Response: ",
+          "content": "HTTP/1.1 200 OK\n{\n[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',\n summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },\n{ id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',\n summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]\n}",
+          "type": "json"
+        }
+      ]
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
@@ -185,11 +236,11 @@ define({ "api": [
   },
   {
     "type": "POST",
-    "url": "/LINCS/zscores",
-    "title": "Save zscores to database",
-    "name": "setZScores",
+    "url": "/LINCS/instances",
+    "title": "Save instance data to server",
+    "name": "postInstance",
     "group": "LINCS",
-    "description": "<p>Saves z-score document to document stre.</p> ",
+    "description": "<p>Stores instance (e.g. level 2 data) on the server</p> ",
     "parameter": {
       "fields": {
         "Parameter": [
@@ -197,57 +248,8 @@ define({ "api": [
             "group": "Parameter",
             "type": "<p>String</p> ",
             "optional": false,
-            "field": "pert",
-            "description": "<p>Name of perturbagen.</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>String</p> ",
-            "optional": false,
-            "field": "cell",
-            "description": "<p>Name of cell line.</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>Numeric</p> ",
-            "optional": false,
-            "field": "dose",
-            "description": "<p>Dose, without units.</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>Numeric</p> ",
-            "optional": false,
-            "field": "duration",
-            "description": "<p>Duration, without units.</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>Boolean</p> ",
-            "optional": false,
-            "field": "gold",
-            "description": "<p>Is this signature derived from gold instances?</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>String</p> ",
-            "optional": false,
-            "field": "type",
-            "description": "<p>The type of zscore, e.g. &quot;ZSVC_L1000&quot;</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>String[]</p> ",
-            "optional": false,
-            "field": "gene_ids",
-            "description": "<p>The ids of the genes in the signature</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>Numberic[]</p> ",
-            "optional": false,
-            "field": "zscores",
-            "description": "<p>The scores</p> "
+            "field": "doc",
+            "description": "<p>instance document including attributes metadata, type, gene_ids, data.</p> "
           }
         ]
       }
@@ -259,11 +261,18 @@ define({ "api": [
             "group": "Success 200",
             "type": "<p>string</p> ",
             "optional": false,
-            "field": "cas",
-            "description": "<p>CAS number</p> "
+            "field": "response",
+            "description": "<p>response</p> "
           }
         ]
-      }
+      },
+      "examples": [
+        {
+          "title": "Success-Response: ",
+          "content": "HTTP/1.1 200 OK\n{\n}",
+          "type": "json"
+        }
+      ]
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
@@ -311,8 +320,8 @@ define({ "api": [
       "examples": [
         {
           "title": "Success-Response: ",
-          "content": "[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',\n summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },\n{ id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',\n summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]",
-          "type": "Object"
+          "content": "HTTP/1.1 200 OK\n{\n[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',\n summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },\n  { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',\n summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]\n}",
+          "type": "json"
         }
       ]
     },
@@ -362,8 +371,8 @@ define({ "api": [
       "examples": [
         {
           "title": "Success-Response: ",
-          "content": "[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',\n summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },\n{ id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',\n summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]",
-          "type": "Object"
+          "content": "HTTP/1.1 200 OK\n{\n[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',\n summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },\n{ id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',\n summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]\n}",
+          "type": "json"
         }
       ]
     },
@@ -384,11 +393,18 @@ define({ "api": [
             "group": "Success 200",
             "type": "<p>string</p> ",
             "optional": false,
-            "field": "OK.",
-            "description": "<p>Send GET to /LINCS for further documentation.</p> "
+            "field": "response",
+            "description": ""
           }
         ]
-      }
+      },
+      "examples": [
+        {
+          "title": "Success-Response: ",
+          "content": "HTTP/1.1 200 OK\nOK.  Send GET to /LINCS for further documentation.",
+          "type": "json"
+        }
+      ]
     },
     "version": "0.0.0",
     "filename": "bin/app.js",

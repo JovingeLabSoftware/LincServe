@@ -19,7 +19,11 @@ server.use(restify.queryParser());
  * @apiName Root
  * @apiGroup Root
  *
- * @apiSuccess {string} OK.  Send GET to /LINCS for further documentation.
+ * @apiSuccess {string} response
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * OK.  Send GET to /LINCS for further documentation.
+ * 
  */
 server.get('/', function(req, res){
     res.send(200, "OK!  Send GET to /LINCS for further documentation.");
@@ -46,6 +50,14 @@ server.get('/LINCS', function(req, res){
  *
  * @apiSuccess {integer} first Smallest index
  * @apiSuccess {integer} last  Largest index
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * {
+ * [ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
+ *  summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },
+ * { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
+ *  summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]
+ * }
  */
 server.get('/LINCS/nidrange', function(req, res){
     res.header("Access-Control-Allow-Origin", "*");
@@ -71,11 +83,14 @@ server.get('/LINCS/nidrange', function(req, res){
  * @apiParam {Number} last Ending numerical index.
  *
  * @apiSuccess {string} summaries Summary docs in JSON format
- * @apiSuccessExample {Object} Success-Response: 
- *[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * {
+ * [ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
  *  summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },
- *{ id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
+ * { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
  *  summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]
+ * }
  */
 
 server.get('/LINCS/summaries/nid', function(req, res){
@@ -107,11 +122,14 @@ server.get('/LINCS/summaries/nid', function(req, res){
  * @apiParam {Number} limit Ending numerical index.
  *
  * @apiSuccess {string} summaries Summary docs in JSON format
- * @apiSuccessExample {Object} Success-Response: 
- *[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * {
+ * [ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
  *  summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },
- *{ id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
+ *   { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
  *  summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]
+ * } 
  */
 
 server.get('/LINCS/summaries', function(req, res){
@@ -148,8 +166,10 @@ server.get('/LINCS/summaries', function(req, res){
  * @apiParam {Numeric} duration Duration, without units.  Optional (but see above).
  *
  * @apiSuccess {string} instances Instance ids  in JSON format
- * @apiSuccessExample {Object} Success-Response: 
- *[ { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * {
+ * [ { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  
  *    value:                                                                                                                     
  *     { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08',                                                                   
  *       vehicle: 'DMSO' },                                                                                                      
@@ -162,6 +182,7 @@ server.get('/LINCS/summaries', function(req, res){
  * 
  *     "...truncated..."
  * ]
+ * }
  */
 server.get('LINCS/instances', function(req, res) {
     req.params = dequote(req.params);
@@ -187,44 +208,37 @@ server.get('LINCS/instances', function(req, res) {
     });
 });
 
-
 /**
- * @api {POST} /LINCS/zscores Save zscores to database
- * @apiName setZScores
+ * @api {POST} /LINCS/pert Create a perturbation data document
+ * @apiName createPerturbation
  * @apiGroup LINCS
- * @apiDescription Saves z-score document to document stre.
+ * @apiDescription Creates a data document for a particular perturbation &
+ *                 calculation method
  * 
- * @apiParam {String} pert Name of perturbagen.
- * @apiParam {String} cell Name of cell line.  
- * @apiParam {Numeric} dose Dose, without units.  
- * @apiParam {Numeric} duration Duration, without units.  
- * @apiParam {Boolean} gold Is this signature derived from gold instances?  
- * @apiParam {String} type The type of zscore, e.g. "ZSVC_L1000"
- * @apiParam {String[]} gene_ids The ids of the genes in the signature
- * @apiParam {Numberic[]} zscores The scores
- * @apiSuccess {string} cas CAS number
+ * @apiParam {String} doc JSON containing perturbagen, dose, duration, cell, 
+ *                    method, gold, gene_ids, and data
+ *
+ * @apiSuccess {string} Id of created object
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 201 Created
+ * {
+ *  _id: 1
+ * }
  */
-server.post('LINCS/zscores', function(req, res) {
-    var cell_line = req.params.cell_line;
-    var pert = req.params.pert;
-    var dose = req.params.dose;
-    var duration = req.params.duration;
-    var gene_ids = req.params.gene_ids;
-    var zscores = req.params.zscores;
-    var type = req.params.type;
-    var version = req.params.version;
-    var gold = req.params.gold || false;
-    if(!cell_line || !pert || !type || !dose || !duration) {
-        res.send(400, "Must specify cell_line, pert, dose, duration, and score type when inserting Z-score document");
+server.post('LINCS/pert', function(req, res) {
+    if(!checkParams(req.params, ['perturbagen', 'dose', 'duration', 'cell',
+                          'method', 'gold', 'gene_ids', 'data'])) {
+        res.send(400, "Creating pert document requires specification of " +
+                      "perturbagen, dose, cell, method, gold, gene_ids, data")                      
+    } else {
+        lincs.savePert(req.params, function(err, data) {
+            if(err) {
+                res.send(400, err);
+            } else {
+                res.send(200, data);
+            }
+        });
     }
-    lincs.saveZScores(cell_line, pert, dose, duration, type, gene_ids, zscores, version, gold,
-        function(err, data) {
-        if(err) {
-            res.send(400, err);
-        } else {
-            res.send(200, data);
-        }
-    });
 });
 
                                            
@@ -237,7 +251,8 @@ server.post('LINCS/zscores', function(req, res) {
  * @apiParam {String} id of desired instance.
  *
  * @apiSuccess {string} data Document in JSON format
- * @apiSuccessExample {Object} Success-Response: 
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
  * {
  * "gene_ids": [
  *     "200814_at",
@@ -271,6 +286,46 @@ server.get('/LINCS/instances/:id', function(req, res){
 });
 
 /**
+ * @api {POST} /LINCS/instances Save instance data to server 
+ * @apiName postInstance
+ * @apiGroup LINCS
+ * @apiDescription Stores instance (e.g. level 2 data) on the server. Do NOT use this
+ *                    endpoint to save calculated scores (use /LINCS/pert for that).
+ *
+ * @apiParam {String} doc instance document including attributes 
+ *                    metadata, type, gene_ids, data.  Type should describe
+ *                    the level of data, e.g. 'q2norm'.  
+ *
+ * @apiSuccess {string} response response
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * {
+ * }
+ */
+server.post('/LINCS/instances', function(req, res){
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    if(!checkParams(req.params, ['id', 'gene_ids', 'metadata', 'data', 'type', 'gold'])) {
+        res.send(400, "Creating instance document requires POSTing the following " +
+                      "parameters: id, gene_ids, data, metadata, type, gold"); 
+    } else {
+        var doc = {gene_ids: req.params.gene_ids, 
+                   metadata: req.params.metadata,
+                   data: req.params.data,
+                   type: req.params.type,
+                   gold: req.params.gold};
+                   
+        lincs.saveInstance(req.params.id, doc, function(err, data) {
+            if(err) {
+                res.send(400, err);
+            } else {
+                res.send(200, data);
+            }
+        });
+    }
+});
+
+/**
  * @api {GET} /LINCS/instances/:id/controls Retrieve control data 
  * @apiName getControls
  * @apiGroup LINCS
@@ -281,7 +336,8 @@ server.get('/LINCS/instances/:id', function(req, res){
  * @apiParam {String} id of instance for which controls are desired.
  *
  * @apiSuccess {string} data Document in JSON format
- * @apiSuccessExample {Object} Success-Response (note array): 
+ * @apiSuccessExample Success-Response (note array): 
+ * HTTP/1.1 200 OK
  * {
  * ["gene_ids": [
  *     "200814_at",
@@ -303,6 +359,7 @@ server.get('/LINCS/instances/:id', function(req, res){
  *  },
  *  "...truncated..."
  * ]
+ * }
  */
 server.get('/LINCS/instances/:id/controls', function(req, res){
     res.header("Access-Control-Allow-Origin", "*");
@@ -333,3 +390,12 @@ var dequote = function(x) {
   return(x);
 };
 
+var checkParams = function(obj, vars) {
+    var ok = true;
+    vars.forEach(function(v) {
+        if(typeof(obj[[v]]) == "undefined") {
+            ok = false;
+        } 
+    });
+    return(ok);
+};

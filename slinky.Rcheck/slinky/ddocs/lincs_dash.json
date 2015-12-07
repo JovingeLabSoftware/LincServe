@@ -1,0 +1,12 @@
+{
+"views": {
+"cell_summary": {
+"map": "function (doc, meta) {\n    if(doc.metadata.bead_batch) {\n      emit([doc.metadata.cell_id, doc.metadata.is_gold], null);\n    }\n}",
+"reduce": "_count"
+},
+"pert_summary": {
+"map": "function (doc, meta) {\n  if(doc.metadata.bead_batch) {\n  emit([doc.metadata.pert_type, doc.metadata.pert_id, doc.metadata.is_gold], \n       {pert_desc: doc.metadata.pert_desc,\n        pert_id: doc.metadata.pert_id});\n  }\n}",
+"reduce": "_count"
+}
+}
+}
