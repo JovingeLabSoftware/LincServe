@@ -240,7 +240,7 @@
     "title": "Save instance data to server",
     "name": "postInstance",
     "group": "LINCS",
-    "description": "<p>Stores instance (e.g. level 2 data) on the server</p> ",
+    "description": "<p>Stores instance (e.g. level 2 data) on the server. Do NOT use this endpoint to save calculated scores (use /LINCS/pert for that).</p> ",
     "parameter": {
       "fields": {
         "Parameter": [
@@ -249,7 +249,7 @@
             "type": "<p>String</p> ",
             "optional": false,
             "field": "doc",
-            "description": "<p>instance document including attributes metadata, type, gene_ids, data.</p> "
+            "description": "<p>instance document including attributes metadata, type, gene_ids, data.  Type should describe the level of data, e.g. 'q2norm'.</p> "
           }
         ]
       }

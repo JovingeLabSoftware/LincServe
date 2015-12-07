@@ -390,57 +390,75 @@ LINCS.prototype.getZSVC = function(cell_line,
  */
 LINCS.prototype.savePert = function(doc, cb){
   var deferred = Q.defer();
-  if(!doc.gold || !doc.metadata || !doc.gene_ids || 
-     !doc.data || !doc.dose || !doc.perturbagen || !doc.method) {
-    deferred.reject(new Error("Data document missing required fields (savePert)"));
-  }
-  if(doc.gene_ids.length != doc.data.length) {
-        deferred.reject(new Error("Gene IDs length must match zscores length"));
-  }
-
-  doc.type = "pert";
-  doc.id = doc.method + "_" + doc.cell + "_" +  doc.perturbagen +  
-           "_" + doc.dose +  "_" + doc.duration;
-
-  this.bucket.upsert(doc, function(err, res) 
-  {
-    if(err) {
-      deferred.reject(err);
-    } else {
-      deferred.resolve(res);
+  if(!this._checkParams(doc, ['method', 'dose', 'perturbagen', 'duration', 'gene_ids', 'data', 'type'])){
+    return(deferred.reject(new Error("document did not contain required parameters (saveInstance")));
+  } else {
+    if(doc.gene_ids.length != doc.data.length) {
+      deferred.reject(new Error("Gene IDs length must match zscores length"));
     }
- });
+    doc.type = "pert";
+    var key = doc.method + "_" + doc.cell + "_" +  doc.perturbagen +  
+             "_" + doc.dose +  "_" + doc.duration;
+    this.bucket.upsert(key, JSON.stringify(doc), function(err, res) 
+    {
+      if(err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve(res);
+      }
+   });
+  }
   deferred.promise.nodeify(cb);
   return deferred.promise;
 };
 
 /**
  * Insert an instance doc (e.g. level 2 data from LINCS) into the store.  
+ * @param {string} id Desired document id (aka 'key')
  * @param {string} doc Document in JSON including type, metadata, gene_ids, 
- *                 expression, gold.
+ *                 expression, gold.  Type should indicate what type of data 
+ *                 this is, e.g. "q2norm"
  * @param {function} cb Call back to be called upon completion of async call.  
  *                       Optional--can use promises instead.
  */
-LINCS.prototype.saveInstance = function(doc, cb){
+LINCS.prototype.saveInstance = function(id, doc, cb){
   var deferred = Q.defer();
-  if(!doc.metadata || !doc.gene_ids || 
-     !doc.data || !doc.type || !doc.id) {
-    deferred.reject(new Error("Data document missing required fields (savePert)"));
-  }
-  if(doc.gene_ids.length != doc.data.length) {
-        deferred.reject(new Error("Gene IDs length must match zscores length"));
-  }
-  this.bucket.upsert(doc, function(err, res) 
-  {
-    if(err) {
-      deferred.reject(err);
-    } else {
-      deferred.resolve(res);
+  if(!this._checkParams(doc, ['metadata', 'gene_ids', 'data', 'type', 'gold'])){
+
+    deferred.reject(new Error("document did not contain required parameters (saveInstance"));
+
+  } else {
+    
+    if(doc.gene_ids.length != doc.data.length) {
+          deferred.reject(new Error("Gene IDs length must match zscores length"));
     }
- });
+    this.bucket.upsert(String(id), doc, function(err, res) 
+    {
+      if(err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve(res);
+      }
+   });
+  }
+
   deferred.promise.nodeify(cb);
   return deferred.promise;
 };
+
+
+/* private function to verify parameters in object
+*/
+LINCS.prototype._checkParams = function(obj, vars) {
+    var ok = true;
+    vars.forEach(function(v) {
+        if(typeof(obj[[v]]) == "undefined") {
+            ok = false;
+        } 
+    });
+    return(ok);
+};
+
 
 /* zscore view:
 function (doc, meta) {
@@ -456,6 +474,10 @@ function (doc, meta) {
 }
 */
 
+
+
+
+
 module.exports = exports = new LINCS();
 </code></pre>
         </article>
@@ -469,7 +491,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Mon Dec 07 2015 20:45:08 GMT+0000 (UTC)
+    Documentation generated at Mon Dec 07 2015 22:22:30 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>

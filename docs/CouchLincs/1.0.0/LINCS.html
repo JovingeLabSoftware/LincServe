@@ -1670,7 +1670,7 @@ must also be specified.</p>
 
     
 
-    <h4 class="name" id="saveInstance"><span class="type-signature"></span>saveInstance<span class="signature">(doc, cb)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="saveInstance"><span class="type-signature"></span>saveInstance<span class="signature">(id, doc, cb)</span><span class="type-signature"></span></h4>
 
     
 
@@ -1713,6 +1713,29 @@ must also be specified.</p>
 
         <tr>
             
+                <td class="name"><code>id</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Desired document id (aka 'key')</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>doc</code></td>
             
 
@@ -1730,7 +1753,8 @@ must also be specified.</p>
             
 
             <td class="description last"><p>Document in JSON including type, metadata, gene_ids, 
-                expression, gold.</p></td>
+                expression, gold.  Type should indicate what type of data 
+                this is, e.g. &quot;q2norm&quot;</p></td>
         </tr>
 
     
@@ -1993,7 +2017,7 @@ must also be specified.</p>
 <br class="clear">
 
 <footer>
-    Documentation generated at Mon Dec 07 2015 20:45:08 GMT+0000 (UTC)
+    Documentation generated at Mon Dec 07 2015 22:22:30 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
