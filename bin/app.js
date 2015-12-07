@@ -292,9 +292,11 @@ server.get('/LINCS/instances/:id', function(req, res){
  * @apiDescription Stores instance (e.g. level 2 data) on the server. Do NOT use this
  *                    endpoint to save calculated scores (use /LINCS/pert for that).
  *
- * @apiParam {String} doc instance document including attributes 
- *                    metadata, type, gene_ids, data.  Type should describe
- *                    the level of data, e.g. 'q2norm'.  
+ * @apiParam {String} id desired id (key) of document
+ * @apiParam {String} metadata JSON from lincs
+ * @apiParam {String} type  Type of data, e.g. "q2norm"
+ * @apiParam {[String]} gene_ids from lincs
+ * @apiParam {[Numeric]} data the expression data
  *
  * @apiSuccess {string} response response
  * @apiSuccessExample Success-Response: 
@@ -305,9 +307,9 @@ server.get('/LINCS/instances/:id', function(req, res){
 server.post('/LINCS/instances', function(req, res){
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    if(!checkParams(req.params, ['id', 'gene_ids', 'metadata', 'data', 'type', 'gold'])) {
+    if(!checkParams(req.params, ['id', 'gene_ids', 'metadata', 'data', 'type'])) {
         res.send(400, "Creating instance document requires POSTing the following " +
-                      "parameters: id, gene_ids, data, metadata, type, gold"); 
+                      "parameters: id, gene_ids, data, metadata, type"); 
     } else {
         var doc = {gene_ids: req.params.gene_ids, 
                    metadata: req.params.metadata,
