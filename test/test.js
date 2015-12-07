@@ -160,6 +160,7 @@ describe('LINCS methods', function() {
     });
   });
 
+
   it('returns an informative error if required instance fields not provided.', function(done) {
     client.post('/LINCS/instances', {id: 1, metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
