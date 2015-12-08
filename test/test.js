@@ -130,14 +130,13 @@ describe('LINCS methods', function() {
     client.post('/LINCS/instances', {id: 1, metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1],
-                                 type: "test_instance",
-                                 gold: false}, 
-    function(err, req, res, data) {
+                                 type: "test_instance"}, 
+    function(err, req, res,id) {
       if (err) {
           throw err;
       } else {
           checkResponse(res);
-          assert.ok(data.cas);
+          assert.ok(id);
           done();
       }
     });
@@ -147,14 +146,14 @@ describe('LINCS methods', function() {
     client.post('/LINCS/instances', {id: 'one', metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1],
-                                 type: "test_instance",
-                                 gold: false}, 
-    function(err, req, res, data) {
+                                 type: "test_instance"}, 
+    function(err, req, res, id) {
+
       if (err) {
           throw err;
       } else {
           checkResponse(res);
-          assert.ok(data.cas);
+          assert.ok(id);
           done();
       }
     });
@@ -163,9 +162,9 @@ describe('LINCS methods', function() {
   it('returns an informative error if required instance fields not provided.', function(done) {
     client.post('/LINCS/instances', {id: 1, metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
-                                 data: [12, 3, 4.1],
-                                 gold: false}, // no type!
+                                 data: [12, 3, 4.1]}, // no type!
     function(err, req, res, data) {
+          assert.ok(err);
           done();
     });
   });
@@ -178,12 +177,12 @@ describe('LINCS methods', function() {
                                       type: "test_sig",
                                       method: "test",
                                       gold: false}, 
-    function(err, req, res, data) {
+    function(err, req, res, id) {
       if (err) {
           throw err;
       } else {
           checkResponse(res);
-          assert.ok(data.cas);
+          assert.ok(id);
           done();
       }
     });
@@ -195,7 +194,7 @@ describe('LINCS methods', function() {
                                       data: [12, 3, 4.1],
                                       type: "test_sig",
                                       method: "test",
-                                      gold: false}, // not no duration!
+                                      gold: false}, // note no duration!
     function(err, req, res, data) {
           assert.ok(err);
           done();
