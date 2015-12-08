@@ -13,8 +13,57 @@ define({ "api": [
             "group": "Parameter",
             "type": "<p>String</p> ",
             "optional": false,
-            "field": "doc",
-            "description": "<p>JSON containing perturbagen, dose, duration, cell, method, gold, gene_ids, and data</p> "
+            "field": "perturbagen",
+            "description": "<p>name of perturbagen</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>numeric</p> ",
+            "optional": false,
+            "field": "dose",
+            "description": "<p>dose (unitless)</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>numeric</p> ",
+            "optional": false,
+            "field": "duration",
+            "description": "<p>duration (unitless)</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "cell",
+            "description": "<p>cell line used</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>String</p> ",
+            "optional": false,
+            "field": "method",
+            "description": "<p>calculation method used, e.g. &quot;zsvc_plate&quot;</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>boolean</p> ",
+            "optional": false,
+            "field": "gold",
+            "description": "<p>is this a gold signature score?</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>[String]</p> ",
+            "optional": false,
+            "field": "gene_ids",
+            "description": "<p>from lincs</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>[Numeric]</p> ",
+            "optional": false,
+            "field": "data",
+            "description": "<p>the scores (one per gene)</p> "
           }
         ]
       }
@@ -34,7 +83,7 @@ define({ "api": [
       "examples": [
         {
           "title": "Success-Response: ",
-          "content": "HTTP/1.1 201 Created\n{\n _id: 1\n}",
+          "content": "HTTP/1.1 201 Created\n{\n id: 1\n}",
           "type": "json"
         }
       ]

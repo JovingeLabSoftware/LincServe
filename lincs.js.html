@@ -397,14 +397,14 @@ LINCS.prototype.savePert = function(doc, cb){
       deferred.reject(new Error("Gene IDs length must match zscores length"));
     }
     doc.type = "pert";
-    var key = doc.method + "_" + doc.cell + "_" +  doc.perturbagen +  
+    var id = doc.method + "_" + doc.cell + "_" +  doc.perturbagen +  
              "_" + doc.dose +  "_" + doc.duration;
-    this.bucket.upsert(key, JSON.stringify(doc), function(err, res) 
+    this.bucket.upsert(id, JSON.stringify(doc), function(err, res) 
     {
       if(err) {
         deferred.reject(err);
       } else {
-        deferred.resolve(res);
+        deferred.resolve(id);
       }
    });
   }
@@ -423,7 +423,7 @@ LINCS.prototype.savePert = function(doc, cb){
  */
 LINCS.prototype.saveInstance = function(id, doc, cb){
   var deferred = Q.defer();
-  if(!this._checkParams(doc, ['metadata', 'gene_ids', 'data', 'type'])){
+   if(!this._checkParams(doc, ['metadata', 'gene_ids', 'data', 'type'])){
 
     deferred.reject(new Error("document did not contain required parameters (saveInstance"));
 
@@ -437,7 +437,7 @@ LINCS.prototype.saveInstance = function(id, doc, cb){
       if(err) {
         deferred.reject(err);
       } else {
-        deferred.resolve(res);
+        deferred.resolve(id);
       }
    });
   }
@@ -491,7 +491,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Mon Dec 07 2015 22:25:40 GMT+0000 (UTC)
+    Documentation generated at Tue Dec 08 2015 22:33:39 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
