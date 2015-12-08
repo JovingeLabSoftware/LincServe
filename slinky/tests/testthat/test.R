@@ -24,11 +24,21 @@ test_that("Zscores can be calculated", {
   expect_equal(mean(scores), 0.01266456, tolerance=1e-6)
 })
 
+context("Data loading")
 test_that("Document can be extracted from hdf5 and loaded", {
   res <- sl$loadLevel2(col=1)
   expect_equal(res[1], "1")
 })
 
+test_that("Loading can be batched", {
+  res <- sl$loadBatch()
+  expect_equal(res[1], "1")
+})
+
+test_that("Loading can be batched with cluster", {
+  res <- sl$loadBatch(cluster="mycluster")
+  expect_equal(res[1], "1")
+})
 
 
 

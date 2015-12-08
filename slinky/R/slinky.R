@@ -73,10 +73,10 @@ Slinky$methods(calc = function(cluster = NULL) {
   \\subsection{Parameters}{
   \\itemize{
   \\item{\\code{cluster} An optional cluster object to use for calculations. 
-                         Each node must have this package installed on it.}
+  Each node must have this package installed on it.}
   }}
   \\subsection{Return Value}{None.  Called for side effect of populating 
-                             document store with zscores}"
+  document store with zscores}"
   rest <- .self$.endpoint
   count <- 1
   range <- content(.self$.GET(paste(rest, "/nidrange", sep="")))
@@ -85,16 +85,16 @@ Slinky$methods(calc = function(cluster = NULL) {
   if(length(cluster)) {
     # to do: add cluster support
   }
-
+  
   for(i in seq(0, range$max, step)) {  # process this chunk of instances
     url <- paste(rest, "/summaries/nid?first=", i, "&last=", i+step, sep="")
     res <- .self$.GET(url, query=list(first=i, last=i+step));
-
+    
     data <- tryCatch({.self$.summaryToDF(content(res, as = 'text'))}, error = function(e) { 
       .self$.log("error", paste("NODATA: Could not parse summary", content(res, as='text')), count)
       next()
     })  
-
+    
     for(ii in 1:nrow(data)) { # process each instance
       param = data[ii,]
       if(!.self$.checkParam(param)) next
@@ -122,7 +122,7 @@ Slinky$methods(calc = function(cluster = NULL) {
 
 Slinky$methods(ZbyPlate = function(id) {
   "Calculate zscores for specific instance relative to mean 
-   of appropriate vehicle controls on same plate.
+  of appropriate vehicle controls on same plate.
   \\subsection{Parameters}{
   \\itemize{
   \\item{\\code{id} Id of instance for which scores are desired.}
@@ -151,13 +151,13 @@ Slinky$methods(ZbyPlate = function(id) {
 
 Slinky$methods(getPlateControls = function(id) {
   "Fetch normalized expression data for control samples from same plate as id
-   and treated only with the vehicle used for sample id.
+  and treated only with the vehicle used for sample id.
   \\subsection{Parameters}{
   \\itemize{
   \\item{\\code{id} Id of instance for which control data is desired.}
   }}
   \\subsection{Return Value}{dataframe containing normalized gene expression
-                             for controls.}"
+  for controls.}"
   veh <- .self$.GET(paste(.self$.endpoint, "/instances/", id, "/controls", sep=""))
   if(length(veh)) {
     veh <- gsub('\"', '"', content(veh, "text")) # need to get rid of escapes 
@@ -171,16 +171,26 @@ Slinky$methods(getPlateControls = function(id) {
   }
 })
 
+Slinky$methods(loadAll2 =function(nodes = 4, chunks=1000) {    
+  ii <- 1:1328098
+  chunks <- split(ii, ceiling(seq_along(ii)/chunks))
+  registerDoMC(nodes)
+  
+  for(i in 1:length(chunks)) {
+    .self$loadLevel2(col=chunks[[i]])
+  }
+})
 
-Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/gex_epsilon_n1429794x978.gctx", col) {
-  "Load data for specified column from hdf5 formatted file (.gctx) from LINCS Fetch 
-   into your document store via RESTful interface.
+Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/q2norm_n1328098x22268.gctx", col) {
+  "Load data for specified column(s) from hdf5 formatted file (.gctx) from LINCS Fetch 
+  into your document store via RESTful interface.  Metadata will be matched from metadata
+  object included in this package and added to resulting document. 
   \\subsection{Parameters}{
   \\itemize{
-  \\item{\\code{gctxfile} Path to level 2 gctx file. Default is \\code{./gex_epsilon_n1429794x978.gctx}.}
-  \\item{\\code{gctxfile} Path to instance info file. Default is \\code{./inst.info}.}
+  \\item{\\code{gctxfile} Path to level 2 gctx file. Default is \\code{./q2norm_n1328098x22268.gctx}.}
+  \\item{\\code{col} Column(s) of data to load from gctx file.}
   }}
-  \\subsection{Return Value}{None. Loads data into document store.}"
+  \\subsection{Return Value}{id(s) of resulting documents in doc store.}"
   
   if(!exists('metadata')) {
     data("metadata")
@@ -188,7 +198,6 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/gex_epsilon_n1429794
   
   
   url <- paste(.self$.endpoint, "/instances", sep="")
-  data <- h5read(gctxfile, "0/DATA/0/matrix", index=list(c(1:978), col))
   ids <- h5read(gctxfile, "/0/META/ROW/id", index=list(c(1:978)))
   ids <- gsub(" ", "", ids)
   colids <- h5read(gctxfile, "/0/META/COL/id", index=list(col))
@@ -197,18 +206,15 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/gex_epsilon_n1429794
   md <- metadata[ix,]
   doc <- list();
   doc_ids = character(0)
-  
-  for(i in 1:length(col)) {
-    if(md[i,1] != colids[i]) stop("Metadata and expression data sample ids do not match")
+  data <- h5read(gctxfile, "0/DATA/0/matrix", index=list(c(1:978), col))
+  foreach(i = 1:length(col)) %dopar% {
+    print(i)
     res <- POST(url, body=list('id' = col[i], type="q2norm", metadata = md[i,], gene_ids = ids, data=as.vector(data[,i])), 
-                  encode = "json", verbose=TRUE)
+                encode = "json", verbose=TRUE)
     if(status_code(res) != 200) {
-      print(paste("Error uploading document for", colids[i], sep=" "))
-    } else {
-      doc_ids <- c(doc_ids, content(res, as="parsed"))
-    }
+      .self$.log("error", paste("Failed to load document (col: ", col[i], ")...", content(res, as='text')))
+    } 
   }
-  return(doc_ids)
 })
 
 
@@ -223,13 +229,13 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/gex_epsilon_n1429794
 #
 #
 Slinky$methods(.checkParam = function(param) {
-    isok <- TRUE;
-    if(length(param$desc) == 0 || is.na(param$desc)) {
+  isok <- TRUE;
+  if(length(param$desc) == 0 || is.na(param$desc)) {
     .self$.log("warn", paste("NODESC (no description)", 
                              param$cell, param$desc, param$dose, param$time))            
     isok <- FALSE;
   } else if(param$type != "trt_cp" || param$desc == "-666") {
-  # to do: support perturbagens with only BRD id and no description
+    # to do: support perturbagens with only BRD id and no description
     .self$.log("warn", paste("NOCHEM (not a chemical perturbagen, treatment type", param$type, ")", 
                              param$cell, param$desc, param$dose, param$time))            
     isok <- FALSE;
@@ -266,10 +272,10 @@ Slinky$methods(.checkZ = function(id) {
 #
 #  return list of matching instance ids
 Slinky$methods(.getReplicates = function(pert, 
-                          cell, 
-                          dose, 
-                          duration, 
-                          gold=TRUE) { 
+                                         cell, 
+                                         dose, 
+                                         duration, 
+                                         gold=TRUE) { 
   query <- list(pert = pert, cell=cell, dose=dose, duration=duration, gold=gold, limit=10000)
   res <- .self$.GET(paste(.self$.endpoint, "/instances", sep=""), query=query)
   ids <- NULL    

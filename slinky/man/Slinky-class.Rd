@@ -35,7 +35,7 @@ Default is \code{all}.}
 
 \describe{
 \item{\code{ZbyPlate(id)}}{Calculate zscores for specific instance relative to mean 
- of appropriate vehicle controls on same plate.
+of appropriate vehicle controls on same plate.
 \subsection{Parameters}{
 \itemize{
 \item{\code{id} Id of instance for which scores are desired.}
@@ -46,28 +46,29 @@ Default is \code{all}.}
 \subsection{Parameters}{
 \itemize{
 \item{\code{cluster} An optional cluster object to use for calculations. 
-                       Each node must have this package installed on it.}
+Each node must have this package installed on it.}
 }}
 \subsection{Return Value}{None.  Called for side effect of populating 
-                           document store with zscores}}
+document store with zscores}}
 
 \item{\code{getPlateControls(id)}}{Fetch normalized expression data for control samples from same plate as id
- and treated only with the vehicle used for sample id.
+and treated only with the vehicle used for sample id.
 \subsection{Parameters}{
 \itemize{
 \item{\code{id} Id of instance for which control data is desired.}
 }}
 \subsection{Return Value}{dataframe containing normalized gene expression
-                           for controls.}}
+for controls.}}
 
-\item{\code{loadLevel2(gctxfile = "/mnt/lincs/gex_epsilon_n1429794x978.gctx", col)}}{Load data for specified column from hdf5 formatted file (.gctx) from LINCS Fetch 
- into your document store via RESTful interface.
+\item{\code{loadLevel2(gctxfile = "/mnt/lincs/q2norm_n1328098x22268.gctx", col)}}{Load data for specified column(s) from hdf5 formatted file (.gctx) from LINCS Fetch 
+into your document store via RESTful interface.  Metadata will be matched from metadata
+object included in this package and added to resulting document. 
 \subsection{Parameters}{
 \itemize{
-\item{\code{gctxfile} Path to level 2 gctx file. Default is \code{./gex_epsilon_n1429794x978.gctx}.}
-\item{\code{gctxfile} Path to instance info file. Default is \code{./inst.info}.}
+\item{\code{gctxfile} Path to level 2 gctx file. Default is \code{./q2norm_n1328098x22268.gctx}.}
+\item{\code{col} Column(s) of data to load from gctx file.}
 }}
-\subsection{Return Value}{None. Loads data into document store.}}
+\subsection{Return Value}{id(s) of resulting documents in doc store.}}
 
 \item{\code{setIp(ip = "127.0.0.1")}}{Set IP and redefine endpoint
 \subsection{Parameters}{

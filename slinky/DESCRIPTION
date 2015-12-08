@@ -11,6 +11,7 @@ Depends:
     httr,
     rjson,
     dplyr,
+    doMC,
     tidyjson
 Collate: 
     'slinky.R'
