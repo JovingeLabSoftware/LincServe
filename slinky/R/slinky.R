@@ -196,17 +196,19 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/gex_epsilon_n1429794
   ix <- match(colids, metadata[,1])
   md <- metadata[ix,]
   doc <- list();
-
+  doc_ids = character(0)
   
   for(i in 1:length(col)) {
     if(md[i,1] != colids[i]) stop("Metadata and expression data sample ids do not match")
-    str(data)
     res <- POST(url, body=list('id' = col[i], type="q2norm", metadata = md[i,], gene_ids = ids, data=as.vector(data[,i])), 
                   encode = "json", verbose=TRUE)
     if(status_code(res) != 200) {
       print(paste("Error uploading document for", colids[i], sep=" "))
-    } 
+    } else {
+      doc_ids <- c(doc_ids, content(res, as="parsed"))
+    }
   }
+  return(doc_ids)
 })
 
 

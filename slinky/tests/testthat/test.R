@@ -26,8 +26,7 @@ test_that("Zscores can be calculated", {
 
 test_that("Document can be extracted from hdf5 and loaded", {
   res <- sl$loadLevel2(col=1)
-  print(res)
-  expect_equal(mean(scores), 0.01266456, tolerance=1e-6)
+  expect_equal(res[1], "1")
 })
 
 
