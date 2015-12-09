@@ -174,8 +174,7 @@ Slinky$methods(getPlateControls = function(id) {
 Slinky$methods(loadAll2 =function(nodes = 4, chunks=1000) {    
   ii <- 1:1328098
   chunks <- split(ii, ceiling(seq_along(ii)/chunks))
-  registerDoMC(nodes)
-  
+  registerDoMC(nodes)  
   for(i in 1:length(chunks)) {
     .self$loadLevel2(col=chunks[[i]])
   }
@@ -204,17 +203,19 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/q2norm_n1328098x2226
   colids <- gsub(" ", "", colids)
   ix <- match(colids, metadata[,1])
   md <- metadata[ix,]
-  doc <- list();
-  doc_ids = character(0)
   data <- h5read(gctxfile, "0/DATA/0/matrix", index=list(c(1:978), col))
+  doclist <- character();
   foreach(i = 1:length(col)) %dopar% {
-    print(i)
-    res <- POST(url, body=list('id' = col[i], type="q2norm", metadata = md[i,], gene_ids = ids, data=as.vector(data[,i])), 
-                encode = "json", verbose=TRUE)
+    res <- .self$.POST(url, body=list('id' = col[i], type="q2norm", metadata = jsonlite::unbox(md[i,]), gene_ids = ids, data=as.vector(data[,i])), 
+                       encode = "json", verbose=TRUE)
     if(status_code(res) != 200) {
-      .self$.log("error", paste("Failed to load document (col: ", col[i], ")...", content(res, as='text')))
-    } 
+      .self$.log("error", paste("ERRNOLOAD Failed to load document (col: ", col[i], ")...", content(res, as='text')))
+    } else {
+      .self$.log("info", paste("OK: loaded document (col: ", col[i], ")..."))
+      doclist <- c(doclist, content(res, as = 'parsed'))
+    }
   }
+  doclist
 })
 
 
@@ -328,7 +329,7 @@ Slinky$methods(.log = function(level, message, line = NULL) {
         (level == "info" && .self$loglevel == "all") ) {    
     msg <- paste(line, toupper(level), ":", message)
     if(!.self$silent) print(msg)
-    write(line, file=.self$logfile, append=TRUE)
+    write(message, file=.self$logfile, append=TRUE)
   }
 })
 
@@ -338,19 +339,24 @@ Slinky$methods(.log = function(level, message, line = NULL) {
 # Simple wrapper around httr GET to facilitate error trapping, retries, and logging
 #
 Slinky$methods(.GET = function(url, rep=0, ...) {
-  res <- NULL
-  tryCatch({
-    res <- GET(url, ...);
+  response <- tryCatch({
+    res <- GET(url=url, ...);
+    # trap the couchbase temporary failure event
+    if(is.list(res) && rep < 3 && grepl("Temporary failure", content(res, as='text'))) {
+      Sys.sleep(.2 * (rep+1))  
+      res <- .GET(url, rep+1, ...)
+    }
+    return(res)
   }, error = function(e) {
-    if(rep < .self$maxtries) {
-      .self$.log('info', paste("NO RESPONSE FROM SERVER: RETRYING GET FROM:", url))
-      Sys.sleep(.2)
-      return(.self$.GET(url, rep+1, ...))
+    if(rep < 3) {
+      Sys.sleep(.2 * (rep+1))
+      print(e)
+      return(.GET(url, rep+1, ...))
     } else {
-      .self$.log('error', paste("NO RESPONSE FROM SERVER: FAILED:", url))
+      return(readRDS(file=paste(path.package("slinky"),"/rds/res400.rds" ,sep="")))
     }
   })          
-  res
+  response
 })
 
 
@@ -358,19 +364,25 @@ Slinky$methods(.GET = function(url, rep=0, ...) {
 # .POST (private method)
 # Simple wrapper around httr POST to facilitate error trapping, retries, and logging
 #
-Slinky$methods(.POST = function(url, query, rep=0, ...) {
-  res <- NULL
-  tryCatch({
-    res <- POST(url, query, ...);
+Slinky$methods(.POST = function(url, body="", query="", rep=0, ...) {
+  response <- tryCatch({
+    res <- POST(url=url, query=query, body=body, ...);
+    # trap the couchbase temporary failure event
+    if(is.list(res) && rep < 3 && grepl("Temporary failure", content(res, as='text'))) {
+      if(!.self$silent) print("Temporary failure...pausing a momment then will retry")
+      Sys.sleep(.2 * (rep+1))  
+      res <- .POST(url, body=body, query=query, rep+1, ...)
+    }
+    return(res)
   }, error = function(e) {
-    if(rep < .self$maxtries) {
-      .self$.log('info', paste("NO RESPONSE FROM SERVER: RETRYING POST TO:", url))
-      Sys.sleep(.2)
-      return(.self$.POST(url, query, rep+1, ...))
+    if(rep < 3) {
+      Sys.sleep(.2 * (rep+1))
+      print(e)
+      return(.POST(url, body=body, query=query, rep+1, ...))
     } else {
-      .self$.log('error', paste("NO RESPONSE FROM SERVER: FAILED:", url))
+      return(readRDS(file=paste(path.package("slinky"),"/rds/res400.rds" ,sep="")))
     }
   })          
-  res
+  response
 })
 

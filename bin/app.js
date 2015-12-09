@@ -184,7 +184,7 @@ server.get('/LINCS/summaries', function(req, res){
  * ]
  * }
  */
-server.get('LINCS/instances', function(req, res) {
+server.get('/LINCS/instances', function(req, res) {
     req.params = dequote(req.params);
     var limit = req.params.limit || 1000;
     var skip = req.params.skip || 0;
@@ -215,17 +215,23 @@ server.get('LINCS/instances', function(req, res) {
  * @apiDescription Creates a data document for a particular perturbation &
  *                 calculation method
  * 
- * @apiParam {String} doc JSON containing perturbagen, dose, duration, cell, 
- *                    method, gold, gene_ids, and data
+ * @apiParam {String} perturbagen name of perturbagen
+ * @apiParam {numeric} dose dose (unitless)
+ * @apiParam {numeric} duration duration (unitless)
+ * @apiParam {String} cell cell line used
+ * @apiParam {String} method calculation method used, e.g. "zsvc_plate"
+ * @apiParam {boolean} gold is this a gold signature score?
+ * @apiParam {[String]} gene_ids from lincs
+ * @apiParam {[Numeric]} data the scores (one per gene)
  *
  * @apiSuccess {string} Id of created object
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 201 Created
  * {
- *  _id: 1
+ *  id: 1
  * }
  */
-server.post('LINCS/pert', function(req, res) {
+server.post('/LINCS/pert', function(req, res) {
     if(!checkParams(req.params, ['perturbagen', 'dose', 'duration', 'cell',
                           'method', 'gold', 'gene_ids', 'data'])) {
         res.send(400, "Creating pert document requires specification of " +
@@ -316,6 +322,7 @@ server.post('/LINCS/instances', function(req, res){
                    data: req.params.data,
                    type: req.params.type,
                    gold: req.params.gold};
+                   console.log(req.params.metadata)
                    
         lincs.saveInstance(req.params.id, doc, function(err, data) {
             if(err) {
