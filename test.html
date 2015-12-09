@@ -1,0 +1,163 @@
+    <section class="suite">
+      <h1>Server up</h1>
+      <dl>
+	LINCS listening at http://0.0.0.0:8083
+        <dt>should get a 200 response</dt>
+        <dd><pre><code>client.get('/', function(err, req, res, data) {
+  if (err) {
+      throw new Error(err);
+  }
+  else {
+      assert(res.statusCode==200);
+      done();
+  }
+});</code></pre></dd>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>LINCS methods</h1>
+      <dl>
+        <dt>retrieves range of numerical indices</dt>
+        <dd><pre><code>client.get('/LINCS/nidrange', function(err, req, res, data) {
+  if (err) {
+      throw new Error(err);
+  }
+  else {
+      _range = data;
+      assert(data.min &gt; 0);
+      assert(data.max &gt; 0);
+      done();
+  }
+});</code></pre></dd>
+        <dt>retrieves range of documents by NID range</dt>
+        <dd><pre><code>client.get('/LINCS/nidrange', function(err, req, res, data) {
+    if (err) {
+        throw new Error(err);
+    } else {
+        // fetch about 0.001% of documents.
+        var inc = Math.floor((_range.max - _range.min) / 1000000);
+        client.get('/LINCS/summaries/nid?first=' + (data.max-inc) + &quot;&amp;last=&quot; + data.max, function(err, req, res, data) {
+          if(err) {
+             throw(err);
+          }
+          assert.ok(data[0]);
+          done();
+        })
+    }
+  });</code></pre></dd>
+        <dt>retrieves range of documents by document index (1..N)</dt>
+        <dd><pre><code>client.get('/LINCS/summaries?skip=0&amp;limit=10', function(err, req, res, data) {
+  if(err) throw(err);
+  checkResponse(res);
+  assert.equal(data.length, 10);
+  done();
+});</code></pre></dd>
+        <dt>retrieves an instance</dt>
+        <dd><pre><code>client.get('/LINCS/instances/CPC006_SNUC4_6H_X1_F2B4_DUO52HI53LO:K08', function(err, req, res, data) {
+  if (err) {
+      throw err;
+  } else {
+    checkResponse(res);
+    assert.ok(data.metadata);
+    done();
+  }
+});</code></pre></dd>
+        <dt>retrieves control data for given instance</dt>
+        <dd><pre><code>client.get('/LINCS/instances/CPC006_SNUC4_6H_X1_F2B4_DUO52HI53LO:K08/controls', function(err, req, res, data) {
+  if (err) {
+      throw err;
+  } else {
+    checkResponse(res);
+    assert.ok(data[0].value.metadata);
+    assert.equal(data.length, 14);
+    done();
+  }
+});</code></pre></dd>
+        <dt>retrieves all instances with the specified perturbation</dt>
+        <dd><pre><code>client.get('/LINCS/instances?cell=&quot;SNUC4&quot;&amp;pert=&quot;Rottlerin&quot;&amp;dose=9.68&amp;duration=6', function(err, req, res, data) {
+  if (err) {
+      throw err;
+  } else {
+        checkResponse(res);
+        assert.ok(data[0]);
+        assert.equal(data.length, 2);
+        done();
+  }
+});</code></pre></dd>
+        <dt>retrieves all instances with the specified perturbation but any dose or duration</dt>
+        <dd><pre><code>client.get('/LINCS/instances?cell=&quot;SNUC4&quot;&amp;pert=&quot;Rottlerin&quot;', function(err, req, res, data) {
+  if (err) {
+      throw err;
+  } else {
+        checkResponse(res);
+        assert.ok(data[0]);
+        assert.equal(data.length, 2);
+        done();
+  }
+});</code></pre></dd>
+        <dt>inserts instance document with numerical ID</dt>
+        <dd><pre><code>client.post('/LINCS/instances', {id: 1, metadata: {cell: &quot;A375&quot;, perturbagen: &quot;BRD-K73037408&quot;, duration: 24, dose: 2}, 
+                             gene_ids: ['GENE1', 'GENE2', 'GENE3'],
+                             data: [12, 3, 4.1],
+                             type: &quot;test_instance&quot;}, 
+function(err, req, res, data) {
+  if (err) {
+      throw err;
+  } else {
+      checkResponse(res);
+      assert.ok(data.cas);
+      done();
+  }
+});</code></pre></dd>
+        <dt>inserts instance document with string ID</dt>
+        <dd><pre><code>client.post('/LINCS/instances', {id: 'one', metadata: {cell: &quot;A375&quot;, perturbagen: &quot;BRD-K73037408&quot;, duration: 24, dose: 2}, 
+                             gene_ids: ['GENE1', 'GENE2', 'GENE3'],
+                             data: [12, 3, 4.1],
+                             type: &quot;test_instance&quot;}, 
+function(err, req, res, data) {
+  if (err) {
+      throw err;
+  } else {
+      checkResponse(res);
+      assert.ok(data.cas);
+      done();
+  }
+});</code></pre></dd>
+        <dt>returns an informative error if required instance fields not provided.</dt>
+        <dd><pre><code>client.post('/LINCS/instances', {id: 1, metadata: {cell: &quot;A375&quot;, perturbagen: &quot;BRD-K73037408&quot;, duration: 24, dose: 2}, 
+                             gene_ids: ['GENE1', 'GENE2', 'GENE3'],
+                             data: [12, 3, 4.1],
+                             gold: false}, // no type!
+function(err, req, res, data) {
+      assert.ok(err);
+      done();
+});</code></pre></dd>
+        <dt>inserts zscore document</dt>
+        <dd><pre><code>client.post('/LINCS/pert', {cell: &quot;A375&quot;, perturbagen: &quot;BRD-K73037408&quot;, duration: 24, dose: 2,  
+                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
+                                  data: [12, 3, 4.1],
+                                  type: &quot;test_sig&quot;,
+                                  method: &quot;test&quot;,
+                                  gold: false}, 
+function(err, req, res, data) {
+  if (err) {
+      throw err;
+  } else {
+      checkResponse(res);
+      assert.ok(data.cas);
+      done();
+  }
+});</code></pre></dd>
+        <dt>returns an informative error if required pert fields not provided.</dt>
+        <dd><pre><code>client.post('/LINCS/pert', {cell: &quot;A375&quot;, perturbagen: &quot;BRD-K73037408&quot;, dose: 2,  
+                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
+                                  data: [12, 3, 4.1],
+                                  type: &quot;test_sig&quot;,
+                                  method: &quot;test&quot;,
+                                  gold: false}, // not no duration!
+function(err, req, res, data) {
+      assert.ok(err);
+      done();
+});</code></pre></dd>
+      </dl>
+    </section>
