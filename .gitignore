@@ -22,8 +22,7 @@ config.json
 
 # cloud 9 config files
 .c9
-.c9\*
-.c9**
+
 
 # crash files
 erl_crash*

@@ -1,9 +1,0 @@
-// This file overrides the built-in Shell command runner
-// For more information see http://docs.c9.io:8080/#!/api/run-method-run
-{
-  "cmd": [
-    "$project_path/bin/deploydocs.sh",
-    "$args"
-  ],
-  "working_dir": "$project_path"
-}
