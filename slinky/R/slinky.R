@@ -343,7 +343,7 @@ Slinky$methods(.GET = function(url, rep=0, ...) {
     res <- GET(url=url, ...);
     # trap the couchbase temporary failure event
     if(is.list(res) && rep < 3 && grepl("Temporary failure", content(res, as='text'))) {
-      Sys.sleep(.2 * (rep+1))  
+      Sys.sleep(1 * (rep+1))  
       res <- .GET(url, rep+1, ...)
     }
     return(res)
@@ -376,7 +376,7 @@ Slinky$methods(.POST = function(url, body="", query="", rep=0, ...) {
     return(res)
   }, error = function(e) {
     if(rep < 3) {
-      Sys.sleep(.2 * (rep+1))
+      Sys.sleep(1 * (rep+1))
       print(e)
       return(.POST(url, body=body, query=query, rep+1, ...))
     } else {
