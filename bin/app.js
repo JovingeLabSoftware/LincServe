@@ -272,7 +272,7 @@ server.post('/LINCS/pert', function(req, res) {
  *     "cell_id": "HCC515",
  *     "...truncated..."
  * },
- * "norm_exp": [
+ * "data": [
  *     9.15469932556152,
  *     9.05399990081787,
  *     "...truncated..."
@@ -322,8 +322,7 @@ server.post('/LINCS/instances', function(req, res){
                    data: req.params.data,
                    type: req.params.type,
                    gold: req.params.gold};
-                   console.log(req.params.metadata)
-                   
+
         lincs.saveInstance(req.params.id, doc, function(err, data) {
             if(err) {
                 res.send(400, err);
@@ -360,7 +359,7 @@ server.post('/LINCS/instances', function(req, res){
  *     "cell_id": "HCC515",
  *     "...truncated..."
  * },
- * "norm_exp": [
+ * "data": [
  *     9.15469932556152,
  *     9.05399990081787,
  *     "...truncated..."
