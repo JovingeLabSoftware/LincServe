@@ -13,11 +13,11 @@ test_that("Slinky object can be created", {
   expect_equal(sl$.port, "8080")
 })
 
-#context("Score calculation")
-#test_that("Plate controls can be retrieved", {#
-#  val <- apply(sl$getPlateControls('CPC006_MCF7_6H_X2_F1B3_DUO52HI53LO:O15'), 1, mean)[1]
-#  expect_equal(val, 11.41145)
-#})
+context("Score calculation")
+test_that("Plate controls can be retrieved", {#
+  val <- apply(sl$getPlateControls('CPC006_MCF7_6H_X2_F1B3_DUO52HI53LO:O15'), 1, mean)[1]
+  expect_equal(val, 11.41145)
+})
 
 #test_that("Zscores can be calculated", {
 #  scores <- sl$ZbyPlate('CPC006_MCF7_6H_X2_F1B3_DUO52HI53LO:O15')
@@ -30,12 +30,11 @@ test_that("Slinky object can be created", {
 #})
 
 context("Data loading")
-test_that("Document can be extracted from hdf5 and loaded", {
-  res <- sl$loadLevel2(col=1)
-  print(paste("ok", res))
-  
-  expect_equal(res[1], 1)
+test_that("Document can be extracted from hdf5 and loaded", {  
+  res <- sl$loadLevel2(col=1)  
+  expect_equal(res, "1")
 })
+
 
 
 # following works but would need a mock to test
