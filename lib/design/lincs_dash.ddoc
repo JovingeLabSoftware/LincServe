@@ -1,0 +1,12 @@
+{
+"views": {
+"cell_summary": {
+"map": "function (doc, meta) {\n  if(doc.metadata.length) {\n    emit([doc.metadata[0].cell_id, doc.metadata[0].is_gold], null);\n  } else {\n    emit([doc.metadata.cell_id, doc.metadata.is_gold], null);\n  }\n}",
+"reduce": "_count"
+},
+"pert_summary": {
+"map": "function (doc, meta) {\n  if(doc.metadata.length) {\n\t  emit([doc.metadata[0].pert_type, doc.metadata[0].pert_id, doc.metadata[0].is_gold], \n\t       {pert_desc: doc.metadata[0].pert_desc,\n\t        pert_id: doc.metadata[0].pert_id});\n  } else {\n\t  emit([doc.metadata.pert_type, doc.metadata.pert_id, doc.metadata.is_gold], \n\t       {pert_desc: doc.metadata.pert_desc,\n\t        pert_id: doc.metadata.pert_id});\n  }\n}\n",
+"reduce": "_count"
+}
+}
+}

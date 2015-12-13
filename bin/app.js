@@ -324,6 +324,7 @@ server.post('/LINCS/instances', function(req, res){
                    gold: req.params.gold};
 
         lincs.saveInstance(req.params.id, doc, function(err, data) {
+            console.log(err, data)
             if(err) {
                 res.send(400, err);
             } else {
@@ -376,6 +377,7 @@ server.get('/LINCS/instances/:id/controls', function(req, res){
         if(err) {
             res.send(400, err);
         } else {
+            console.log('control request succeeded');
             res.send(200, data);
         }
     });

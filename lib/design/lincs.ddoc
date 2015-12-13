@@ -1,0 +1,24 @@
+{
+"views": {
+"gold_by_cell": {
+"map": "function (doc, meta) {\n  if(doc.metadata.is_gold) {\n    emit([doc.metadata.cell_id,\n          doc.metadata.pert_desc,\n          doc.metadata.pert_dose,\n          doc.metadata.pert_time],\n         {distil_id: doc.metadata.distil_id,\n          vehicle: doc.metadata.pert_vehicle}\n    );\n  }\n}",
+"reduce": "_count"
+},
+"all_by_cell": {
+"map": "function (doc, meta) {\n  emit([doc.metadata.cell_id,\n        doc.metadata.pert_desc,\n        doc.metadata.pert_dose,\n        doc.metadata.pert_time],\n       {distil_id: doc.metadata.distil_id,\n        vehicle: doc.metadata.pert_vehicle}\n  );\n}",
+"reduce": "_count"
+},
+"numerical_index": {
+"map": "\nfunction (doc, meta) {\n  // at 3 documents per millisecond, this algorithm is expected to result in \n  // about a couple of duplicate sets of keys every day of indexing.  Assumes that \n  // any given indexing task completes in < 3 hours.  \n  var prng = function () {\n    // unique milliseconds within any 2.7 hour window\n       var a = Date.now().toString().substring(6,14)\n       // pad out with as many random bytes as possible \n       b = Math.floor(Math.random() * 90071992)\n       return(Number(\"\" + b + a))\n  };\n  var key = prng();\n  emit(key, {cell_id: doc.metadata.cell_id,\n    \t     pert_desc: doc.metadata.pert_desc,\n\t     pert_dose: doc.metadata.pert_dose,\n             pert_time: doc.metadata.pert_time,\n             pert_type: doc.metadata.pert_type,\n             pert_vehicle: doc.metadata.pert_vehicle,\n             is_gold: doc.metadata.is_gold\n\t    });\n}\n",
+"reduce": "function (keys, values, rereduce) {\n    var min = 100000000000000000000000;\n    var max = 0;\n    if(!rereduce) {\n      keys.forEach(function(x) {\n        max = Math.max(max, x);\n        min = Math.min(min, x);\n      });\n      return({max: max, min: min});\n    } else {\n      values.forEach(function(x) {\n        max = Math.max(x.max, max);\n        min = Math.min(x.min, min);\n      });\n      return({max: max, min: min});\n    }\n}"
+},
+"vehicle_by_plate": {
+"map": "function (doc, meta) {\n  if (doc.metadata.det_plate) {\n    var pt = doc.metadata.pert_type;\n    if(pt.match(\"ctl\") || pt.match(trt_sh.css)) {\n      emit([doc.metadata.det_plate,\n            doc.metadata.pert_desc,\n            doc.metadata.pert_time],\n           {pert_type: doc.metadata.pert_type,\n            pert_id: doc.metadata.pert_id,\n            pert_desc: doc.metadata.pert_desc\n           }\n      );\n    }\n  }\n}",
+"reduce": "_count"
+},
+"pert_type_cell": {
+"map": "function (doc, meta) {\n  if(doc.type == \"q2norm\" && !doc.metadata.length) { \t   \n    emit([doc.metadata.pert_type, doc.metadata.cell_id], \n         {pert_id: doc.metadata.pert_id,\n          pert_desc: doc.metadata.pert_desc,\n          pert_time: doc.metadata.pert_time,\n          pert_dose: doc.metadata.pert_dose,\n          pert_vehicle: doc.metadata.pert_vehicle,\n          is_gold: doc.metadata.is_gold})\n      }\n}\n",
+"reduce": "_count"
+}
+}
+}

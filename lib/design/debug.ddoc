@@ -1,0 +1,19 @@
+{
+"views": {
+"doc_type": {
+"map": "function (doc, meta) {\n  emit(doc.type, null)\n}",
+"reduce": "_count"
+},
+"doc_method": {
+"map": "function (doc, meta) {\n  if(doc.method) {    \n\t  emit(doc.method, null)\n  }\n}",
+"reduce": "_count"
+},
+"pert_to_id": {
+"map": "function (doc, meta) {\n  if(doc.metadata.bead_batch) {\n    emit(doc.metadata.pert_type, null);\n  }\n}"
+},
+"metadata_test": {
+"map": "function (doc, meta) {\n  if(!doc.metadata.length) {\n    emit(doc.metadata[0].cell_id, doc.metadata.pert_desc);\n  }\n}",
+"reduce": "_count"
+}
+}
+}
