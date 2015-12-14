@@ -50,6 +50,7 @@ Slinky$methods(setIp = function(ip = '127.0.0.1') {
   "Set IP and redefine endpoint
   \\subsection{Parameters}{
   \\itemize{
+
   \\item{\\code{ip} The IP address of the your LINCS REST server, default is \\code{127.0.0.1}.}
   }}
   \\subsection{Return Value}{none}"
@@ -295,6 +296,32 @@ Slinky$methods(saveZ = function(doc_type, z_scores, instance) {
   }
   
 })
+
+
+Slinky$methods(sliceMetadata = function(field, value, cols=NULL) {
+  #   "Get a subset if sample ids based on metadata.  Returns vector of \\code{distil_ids}
+  #   relative expression values, a \\code{type} of document to store the scores
+  #   \\subsection{Parameters}{
+  #   \\itemize{
+  #   \\item{\\code{field} Which field of metadata to search?}
+  #   \\item{\\code{value} What value to search on?  Uses grep so knock yourself out.}
+  #   \\item{\\code{cols} Want to subset a subset?  Just provide an initial set of cols to start with.
+  #                      Default is all columns. }
+  #   }}
+  #   \\subsection{Return Value}{distil_id(s) of resulting instances.}"
+  if(!exists('metadata')) {
+    data("metadata")
+  }
+  if(!length(cols)) {
+    cols <- 1:nrow(metadata)
+  } else {
+    if(class(cols) == "character")
+      cols <- which(metadata$distil_id %in% cols)
+  }
+  ix <- grep(value, metadata[cols, field])
+  return(metadata$distil_id[cols[ix]])  
+})
+
 
 
 #----------------------------------------------------------------------------------------------------------------------
