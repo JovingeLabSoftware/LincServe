@@ -69,7 +69,7 @@ Slinky$methods(setPort = function(port = '8080') {
 })
 
 
-Slinky$methods(calc = function(cluster = NULL) {
+Slinky$methods(calc = function(method = NULL, cluster = NULL) {
   "Calculate zscores and stores them in the document store.
   \\subsection{Parameters}{
   \\itemize{
@@ -79,18 +79,51 @@ Slinky$methods(calc = function(cluster = NULL) {
   \\subsection{Return Value}{None.  Called for side effect of populating 
   document store with zscores}"
   
-  rest <- .self$.endpoint
+  if (is.null(method)) stop('You must provide a calculation method...')
+  
   inst_count <- 1328047 # TODO: write a REST endpoint to get this info
   
   if(length(cluster)) {
-    # to do: add cluster support
+    
+    if (!("cluster" %in% class(cluster))) stop('Cluster must be created by snow library...')
+    
+      # to do: add cluster support
+      # still need to work out the best way to do this...
+
+#     chunks <- clusterSplit(cluster, seq_len(inst_count))
+#     # split the ids in chunks and
+#     switch(method,
+#            "ZSVC_L1000_gold" = .self$zvscChemGold(ids)
+#     )
+    
+  } else {
+    
+    # iterate over the ids sequentially
+    ids <- seq_len(inst_count)
+    switch(method,
+      "ZSVC_L1000_gold" = .self$zvscChemGold(ids)
+    )
   }
 
-  # iterate through all of our instances
-  for(i in seq_len(inst_count)) {  
+})
+
+
+Slinky$methods(zvscChemGold = function(ids) {
+  "Calculate zscores for specific instances relative to mean 
+  of appropriate vehicle controls on same plate.
+  \\subsection{Parameters}{
+  \\itemize{
+  \\item{\\code{id} Ids of instance for which scores are desired.}
+  }}
+  \\subsection{Return Value}{None.}"
+  
+  rest <- .self$.endpoint
+  
+  # iterate through all passed instances
+  for(i in ids) {  
     # TODO: re-implement REST endpoint for this
     if(.self$.checkZ(i)) next
-
+    
     url <- paste0(rest, '/instances/', i)
     res <- .self$.GET(url)
     instance <- rjson::fromJSON(content(res, 'text'))
@@ -100,24 +133,20 @@ Slinky$methods(calc = function(cluster = NULL) {
         pert = instance$metadata$pert_desc, cell = instance$metadata$cell_id, 
         dose = instance$metadata$pert_dose, 
         duration = instance$metadata$pert_time
-        )
+      )
       
-      if (length(replicates) > 1) {
+      if (nrow(replicates) > 1) {
         scores <- do.call(cbind, lapply(replicates$id, .self$ZbyPlate))
         gids <- rownames(scores)
         scores <- apply(scores, 1, mean)
-        
         .self$saveZ(doc_type = "ZSVC_L1000_gold", z_scores = scores, instance = instance)
-        
-        
       } else {
-        .self$.log("error", paste("NOREPS for instance", param$cell, param$desc, param$dose, param$time), count)            
+        .self$.log(level = "error", message = paste("NOREPS for instance", i))            
       }
-      
     }
-  }  
-  
+  }
 })
+
 
 
 Slinky$methods(ZbyPlate = function(id) {
@@ -220,16 +249,16 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/q2norm_n1328098x2226
 
 
 Slinky$methods(saveZ = function(doc_type, z_scores, instance) { 
-  "Save the calculated z-scores to CouchBase via the REST API given a set of 
-  relative expression values, a \code{type} of document to store the scores
-  as, and the \code{list} representation of an \code{q2norm} instance.
-  \\subsection{Parameters}{
-  \\itemize{
-  \\item{\\code{doc_type} The \code{type} of document you'd like to associate with the saved document.}
-  \\item{\\code{z_scores} A named vector of robust z-scores.}
-  \\item{\\code{instance} A \code{list} representation of an \code{q2norm} instance.}
-  }}
-  \\subsection{Return Value}{id(s) of resulting documents in doc store.}"
+#   "Save the calculated z-scores to CouchBase via the REST API given a set of 
+#   relative expression values, a \\code{type} of document to store the scores
+#   as, and the \\code{list} representation of an \\code{q2norm} instance.
+#   \\subsection{Parameters}{
+#   \\itemize{
+#   \\item{\\code{doc_type} The \code{type} of document you'd like to associate with the saved document.}
+#   \\item{\\code{z_scores} A named vector of robust z-scores.}
+#   \\item{\\code{instance} A \code{list} representation of an \code{q2norm} instance.}
+#   }}
+#   \\subsection{Return Value}{id(s) of resulting documents in doc store.}"
   
   if (missing(doc_type)) stop('You must provide a document type when saving z-scores.')
   if (missing(z_scores)) stop('You must provide z-scores when saving z-scores.')
@@ -246,7 +275,7 @@ Slinky$methods(saveZ = function(doc_type, z_scores, instance) {
   #   data [Numeric] the scores (one per gene)
   
   url <- paste(.self$.endpoint, "/pert", sep="")
-  post_body <- list(
+  query <- list(
     perturbagen = jsonlite::unbox(instance$metadata$pert_desc),
     dose = jsonlite::unbox(instance$metadata$pert_dose),
     duration = jsonlite::unbox(instance$metadata$pert_time),
@@ -257,7 +286,7 @@ Slinky$methods(saveZ = function(doc_type, z_scores, instance) {
     data = z_scores
   )
 
-  res <- .self$.POST(url = url, body = post_body, encode = "json", verbose = TRUE)
+  res <- .self$.POST(url = url, body = query, encode = "json", verbose = TRUE)
 
   if (res$status_code != 200L) {
     .self$.log("error", paste("ERR failed to save zscores for instance", instance$metadata$cell_id, instance$metadata$pert_desc, instance$metadata$pert_dose, instance$metadata$pert_time))
@@ -314,17 +343,26 @@ Slinky$methods(.checkPertGold = function(instance) {
   isok <- TRUE
   if (!length(instance$metadata$pert_desc) || is.na(instance$metadata$pert_desc)) {
     .self$.log("warn", paste("NODESC (no description)", 
-                             instance$metadata$cell, instance$metadata$desc, instance$metadata$dose, instance$metadata$time))            
+                             instance$metadata$cell_id, 
+                             instance$metadata$pert_desc, 
+                             instance$metadata$pert_dose, 
+                             instance$metadata$pert_time))            
     isok <- FALSE;
-  } else if (instance$metadata$pert_type != "trt_cp" || instance$metadata$pert_type == "-666") {
+  } else if (instance$metadata$pert_type != "trt_cp" || instance$metadata$pert_desc == "-666") {
     # to do: support perturbagens with only BRD id and no description
-    .self$.log("warn", paste("NOCHEM (not a chemical perturbagen, treatment type", instance$metadata$type, ")", 
-                             instance$metadata$cell, instance$metadata$desc, instance$metadata$dose, instance$metadata$time))            
+    .self$.log("warn", paste("NOCHEM (not a chemical perturbagen, treatment type", instance$metadata$pert_type, ")", 
+                             instance$metadata$cell_id, 
+                             instance$metadata$pert_desc, 
+                             instance$metadata$pert_dose, 
+                             instance$metadata$pert_time))            
     isok <- FALSE;
   } else if (!instance$metadata$is_gold) {  
     # above is hacking around issue of "true" vs. true in metadata
     .self$.log("warn", paste("NOGOLD (instance not gold)", 
-                             instance$metadata$cell, instance$metadata$desc, instance$metadata$dose, instance$metadata$time))            
+                             instance$metadata$cell_id, 
+                             instance$metadata$pert_desc, 
+                             instance$metadata$pert_dose_unit, 
+                             instance$metadata$pert_time))            
     isok <- FALSE;
   }
   return(isok)
