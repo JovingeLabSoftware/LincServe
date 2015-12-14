@@ -1,11 +1,11 @@
 var config = {
 	'prod': {
  	    'version': 1.0,
- 	    'port': 8080
+ 	    'port': 8082
 	},
 	'devel': {
  	    'version': 1.0,
- 	    'port': 8083
+ 	    'port': 8084
 	}
 };
 
