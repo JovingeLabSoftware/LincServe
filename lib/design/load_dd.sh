@@ -22,26 +22,26 @@ curl -X PUT \
 curl -X PUT \
 	-H 'Content-Type: application/json' \
 	http://${COUCH_HOST}:8092/${BUCKET}/_design/dev_lincs \
-	-d @debug.ddoc
+	-d @lincs.ddoc
 	
 curl -X PUT \
 	-H 'Content-Type: application/json' \
 	http://${COUCH_HOST}:8092/${BUCKET}/_design/lincs_dash \
-	-d @lincs.ddoc
+	-d @lincs_dash.ddoc
 	
 	
 curl -X PUT \
 	-H 'Content-Type: application/json' \
 	http://${COUCH_HOST}:8092/${BUCKET}/_design/dev_lincs_dash \
-	-d @debug.ddoc
+	-d @lincs_dash.ddoc
 
 curl -X PUT \
 	-H 'Content-Type: application/json' \
 	http://${COUCH_HOST}:8092/${BUCKET}/_design/lincs_zscore \
-	-d @lincs.ddoc
+	-d @lincs_zscore.ddoc
 	
 	
 curl -X PUT \
 	-H 'Content-Type: application/json' \
 	http://${COUCH_HOST}:8092/${BUCKET}/_design/dev_lincs_zscore \
-	-d @debug.ddoc
+	-d @lincs_zscore.ddoc
