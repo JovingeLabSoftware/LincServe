@@ -68,7 +68,8 @@ Slinky$methods(setPort = function(port = '8080') {
   .self$.endpoint = paste("http://", .self$.ip, ":", .self$.port, "/LINCS", sep="")
 })
 
-Slinky$methods(calc = function(cluster = NULL) {
+
+Slinky$methods(calc = function(method = NULL, cluster = NULL) {
   "Calculate zscores and stores them in the document store.
   \\subsection{Parameters}{
   \\itemize{
@@ -77,47 +78,75 @@ Slinky$methods(calc = function(cluster = NULL) {
   }}
   \\subsection{Return Value}{None.  Called for side effect of populating 
   document store with zscores}"
-  rest <- .self$.endpoint
-  count <- 1
-  range <- content(.self$.GET(paste(rest, "/nidrange", sep="")))
-  step <- floor((range$max - range$min) / 20000);
+  
+  if (is.null(method)) stop('You must provide a calculation method...')
+  
+  inst_count <- 1328047 # TODO: write a REST endpoint to get this info
   
   if(length(cluster)) {
-    # to do: add cluster support
+    
+    if (!("cluster" %in% class(cluster))) stop('Cluster must be created by snow library...')
+    
+      # to do: add cluster support
+      # still need to work out the best way to do this...
+
+#     chunks <- clusterSplit(cluster, seq_len(inst_count))
+#     # split the ids in chunks and
+#     switch(method,
+#            "ZSVC_L1000_gold" = .self$zvscChemGold(ids)
+#     )
+    
+  } else {
+    
+    # iterate over the ids sequentially
+    ids <- seq_len(inst_count)
+    switch(method,
+      "ZSVC_L1000_gold" = .self$zvscChemGold(ids)
+    )
   }
-  
-  for(i in seq(0, range$max, step)) {  # process this chunk of instances
-    url <- paste(rest, "/summaries/nid?first=", i, "&last=", i+step, sep="")
-    res <- .self$.GET(url, query=list(first=i, last=i+step));
-    
-    data <- tryCatch({.self$.summaryToDF(content(res, as = 'text'))}, error = function(e) { 
-      .self$.log("error", paste("NODATA: Could not parse summary", content(res, as='text')), count)
-      next()
-    })  
-    
-    for(ii in 1:nrow(data)) { # process each instance
-      param = data[ii,]
-      if(!.self$.checkParam(param)) next
-      # else ...
-      id <- paste(param$cell, gsub("/", "", param$desc), param$dose, param$time, "ZSVC_L1000", "1.0", sep="_")
-      if(!.self$.checkZ(id)) {  
-        instances <- .self$.getReplicates(pert = param$desc, cell = param$cell, dose = param$dose, duration = param$time)
-        if(length(instances) > 1) {
-          scores <- do.call(cbind, lapply(instances$id, .self$ZbyPlate))
-          gids <- rownames(scores)
-          scores <- apply(scores, 1, mean)
-          saveDoc(param$cell, param$desc, param$dose, param$time, gids, scores, "ZSVC_L1000", "1.0", "true")            
-          .self$.log("info", paste("OK saved zscores for", param$cell, param$desc, param$dose, param$time), count)            
-        } else {
-          .self$.log("error", paste("NOREPS for instance", param$cell, param$desc, param$dose, param$time), count)            
-        }
-      } else {  
-        .self$.log("warn", paste(": WARN EXISTS (already exists) for", param$cell, param$desc, param$dose, param$time), count)            
-      }            
-      count <- count+1;
-    }      
-  }  
+
 })
+
+
+Slinky$methods(zvscChemGold = function(ids) {
+  "Calculate zscores for specific instances relative to mean 
+  of appropriate vehicle controls on same plate.
+  \\subsection{Parameters}{
+  \\itemize{
+  \\item{\\code{id} Ids of instance for which scores are desired.}
+  }}
+  \\subsection{Return Value}{None.}"
+  
+  rest <- .self$.endpoint
+  
+  # iterate through all passed instances
+  for(i in ids) {  
+    # TODO: re-implement REST endpoint for this
+    if(.self$.checkZ(i)) next
+    
+    url <- paste0(rest, '/instances/', i)
+    res <- .self$.GET(url)
+    instance <- rjson::fromJSON(content(res, 'text'))
+    
+    if (.self$.checkPertGold(instance)) {
+      replicates <- .self$.getReplicates(
+        pert = instance$metadata$pert_desc, cell = instance$metadata$cell_id, 
+        dose = instance$metadata$pert_dose, 
+        duration = instance$metadata$pert_time
+      )
+      
+      if (nrow(replicates) > 1) {
+        scores <- do.call(cbind, lapply(replicates$id, .self$ZbyPlate))
+        gids <- rownames(scores)
+        scores <- apply(scores, 1, mean)
+        .self$saveZ(doc_type = "ZSVC_L1000_gold", z_scores = scores, instance = instance)
+      } else {
+        .self$.log(level = "error", message = paste("NOREPS for instance", i))            
+      }
+    }
+  }
+})
+
 
 
 Slinky$methods(ZbyPlate = function(id) {
@@ -137,7 +166,7 @@ Slinky$methods(ZbyPlate = function(id) {
     exp <- .self$.GET(url)
     exp <- gsub('\"', '"', content(exp, "text")) # need to get rid of escapes 
     geneids <- fromJSON(exp)$gene_ids
-    exp <- fromJSON(exp)$norm_exp
+    exp <- fromJSON(exp)$data
     fc <- log2(exp/ctrl.m)
     fc <- (fc - median(fc)) / mad(fc)
     names(fc) <- geneids
@@ -163,7 +192,7 @@ Slinky$methods(getPlateControls = function(id) {
     veh <- gsub('\"', '"', content(veh, "text")) # need to get rid of escapes 
     veh <- fromJSON(veh)
     f <- function(x) {
-      return(x$value$norm_exp);
+      return(x$value$data)
     }
     return(do.call(cbind, lapply(veh, f)))
   } else {
@@ -219,6 +248,55 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/q2norm_n1328098x2226
 })
 
 
+Slinky$methods(saveZ = function(doc_type, z_scores, instance) { 
+#   "Save the calculated z-scores to CouchBase via the REST API given a set of 
+#   relative expression values, a \\code{type} of document to store the scores
+#   as, and the \\code{list} representation of an \\code{q2norm} instance.
+#   \\subsection{Parameters}{
+#   \\itemize{
+#   \\item{\\code{doc_type} The \code{type} of document you'd like to associate with the saved document.}
+#   \\item{\\code{z_scores} A named vector of robust z-scores.}
+#   \\item{\\code{instance} A \code{list} representation of an \code{q2norm} instance.}
+#   }}
+#   \\subsection{Return Value}{id(s) of resulting documents in doc store.}"
+  
+  if (missing(doc_type)) stop('You must provide a document type when saving z-scores.')
+  if (missing(z_scores)) stop('You must provide z-scores when saving z-scores.')
+  if (missing(instance)) stop('You must provide instance when saving z-scores.')
+  
+  # From the REST documentation:
+  #   perturbagen	String name of perturbagen
+  #   dose numeric dose (unitless)
+  #   duration numeric duration (unitless)
+  #   cell String cell line used
+  #   method String calculation method used, e.g. "zsvc_plate"
+  #   gold boolean is this a gold signature score?
+  #   gene_ids [String] from lincs
+  #   data [Numeric] the scores (one per gene)
+  
+  url <- paste(.self$.endpoint, "/pert", sep="")
+  query <- list(
+    perturbagen = jsonlite::unbox(instance$metadata$pert_desc),
+    dose = jsonlite::unbox(instance$metadata$pert_dose),
+    duration = jsonlite::unbox(instance$metadata$pert_time),
+    cell = jsonlite::unbox(instance$metadata$cell_id),
+    method = jsonlite::unbox(doc_type), 
+    gold = jsonlite::unbox(instance$metadata$is_gold),
+    gene_ids = instance$gene_ids,
+    data = z_scores
+  )
+
+  res <- .self$.POST(url = url, body = query, encode = "json", verbose = TRUE)
+
+  if (res$status_code != 200L) {
+    .self$.log("error", paste("ERR failed to save zscores for instance", instance$metadata$cell_id, instance$metadata$pert_desc, instance$metadata$pert_dose, instance$metadata$pert_time))
+  } else {
+    .self$.log("info", paste("OK saved zscores for", instance$metadata$cell_id, instance$metadata$pert_desc, instance$metadata$pert_dose, instance$metadata$pert_time))
+  }
+  
+})
+
+
 #----------------------------------------------------------------------------------------------------------------------
 #
 # private functions below
@@ -249,19 +327,65 @@ Slinky$methods(.checkParam = function(param) {
   return(isok)
 })
 
+
+
+
+Slinky$methods(.checkPertGold = function(instance) {
+  "Checks to see if an instance was treated by a chemical perturbagen and `is_gold`.
+  Takes a `list` representation of a `q2norm` document created from `rjson` and checks 
+  the `metadata` slot.
+  \\subsection{Parameters}{
+  \\itemize{
+  \\item{\\code{instance} a `list` representation of a `q2norm` document}
+  }}
+  \\subsection{Return Value}{`TRUE`/`FALSE`}"
+  
+  isok <- TRUE
+  if (!length(instance$metadata$pert_desc) || is.na(instance$metadata$pert_desc)) {
+    .self$.log("warn", paste("NODESC (no description)", 
+                             instance$metadata$cell_id, 
+                             instance$metadata$pert_desc, 
+                             instance$metadata$pert_dose, 
+                             instance$metadata$pert_time))            
+    isok <- FALSE;
+  } else if (instance$metadata$pert_type != "trt_cp" || instance$metadata$pert_desc == "-666") {
+    # to do: support perturbagens with only BRD id and no description
+    .self$.log("warn", paste("NOCHEM (not a chemical perturbagen, treatment type", instance$metadata$pert_type, ")", 
+                             instance$metadata$cell_id, 
+                             instance$metadata$pert_desc, 
+                             instance$metadata$pert_dose, 
+                             instance$metadata$pert_time))            
+    isok <- FALSE;
+  } else if (!instance$metadata$is_gold) {  
+    # above is hacking around issue of "true" vs. true in metadata
+    .self$.log("warn", paste("NOGOLD (instance not gold)", 
+                             instance$metadata$cell_id, 
+                             instance$metadata$pert_desc, 
+                             instance$metadata$pert_dose_unit, 
+                             instance$metadata$pert_time))            
+    isok <- FALSE;
+  }
+  return(isok)
+})
+
+
+
+# TODO: patch this when endpoint exists again
 #
 # .checkZ (private)
 #  See if a zscore document already exists
 #
 #
-Slinky$methods(.checkZ = function(id) {
+Slinky$methods(.checkZ = function(i) {
+  return(FALSE)
+  
   exists = FALSE;
-  url <- paste(.self$.endpoint, "/zscores/", id, "/exists", sep="")            
+  url <- paste(.self$.endpoint, "/zscores/", i, "/exists", sep="")
   res <- .self$.GET(url);
   tryCatch({
     exists <-  fromJSON(gsub('"', '', content(res, type = 'text')))
   }, error = function(e) {
-    .self$.log("error", paste("EXCHECK (unknown error on checking for existance)", e, "id:", id))
+    .self$.log("error", paste("EXCHECK (unknown error on checking for existance)", e, "id:", i))
   })
   return(exists > 0)
 })
@@ -277,7 +401,8 @@ Slinky$methods(.getReplicates = function(pert,
                                          dose, 
                                          duration, 
                                          gold=TRUE) { 
-  query <- list(pert = pert, cell=cell, dose=dose, duration=duration, gold=gold, limit=10000)
+  query <- list(pert = pert, cell = cell, dose = dose, 
+                duration = duration, is_gold = gold, limit = 10000)
   res <- .self$.GET(paste(.self$.endpoint, "/instances", sep=""), query=query)
   ids <- NULL    
   tryCatch({
