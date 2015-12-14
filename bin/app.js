@@ -383,6 +383,40 @@ server.get('/LINCS/instances/:id/controls', function(req, res){
     });
 });
 
+
+/**
+ * @api {GET} /LINCS/sh_controls Retrieve control data for shRNA
+ * @apiName getShControls
+ * @apiGroup LINCS
+ * @apiDescription Retrieves the appropriate shRNA controls given plate id, 
+ * cell line id, and timepoint
+ * 
+ * @apiParam {String} plate Plate ID to pull controls from
+ * @apiParam {String} cell Cell line ID to pull controls from
+ * @apiParam {Numeric} time Timepoint to pull controls from
+ * 
+*/
+
+server.get('/LINCS/sh_controls', function(req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    console.log(req.params);
+    if(!checkParams(req.params, ['plate', 'cell', 'time'])) {
+      res.send(400, "Getting shRNA controls requires: " +
+                    "plate, cell, time");         
+    } else {
+      lincs.instShSamePlateVehicles(req.params.plate, req.params.cell, Number(req.params.time), function(err, data) {
+          if(err) {
+              res.send(400, err);
+          } else {
+              res.send(200, data);
+          }
+      });    
+    }
+});
+
+
+
 var port = config.port; // should get from config file some day
 
 server.listen(port, function() {
