@@ -129,15 +129,16 @@ server.get('/LINCS/summaries/nid', function(req, res){
  *  summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },
  *   { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
  *  summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]
- * } 
+ * }    
  */
 
 server.get('/LINCS/summaries', function(req, res){
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    var _first = req.params.skip;
-    var _last = Number(req.params.skip) + Number(req.params.limit);
-    lincs.getSummaries(_first, _last, false, function(err, data) {
+    var key = req.params.key || null;
+    var skip = req.params.skip || 0;
+    var limit = req.params.limit || 10;
+    lincs.getSummaries(key, skip, limit, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
@@ -200,6 +201,34 @@ server.get('/LINCS/instances', function(req, res) {
     }
     lincs.getByPert(cell_line, pert, Number(dose), Number(duration), Number(skip), Number(limit), gold, 
                     function(err, data) {
+        if(err) {
+            res.send(400, err);
+        } else {
+            res.send(200, data);
+        }
+    });
+});
+
+/**
+ * @api {POST} /LINCS/data Post ids (either primary or view) and retrieve 
+ *                          documentsCreate a perturbation data document
+ * @apiName retrieveData
+ * @apiGroup LINCS
+ * @apiDescription Retrieves multiple docs by primary or view id
+ * 
+ * @apiParam {[String]} keys List of primary or view keys
+ * @apiParam {String} view Name of view.  If missing will use primary index
+ *
+ * @apiSuccess {string} Id of created object
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * {
+ *  ...
+ * }
+ */
+server.post('/LINCS/data', function(req, res) {
+    var view = req.params.view || null;
+    lincs.get(req.params.keys, view, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
@@ -324,7 +353,6 @@ server.post('/LINCS/instances', function(req, res){
                    gold: req.params.gold};
 
         lincs.saveInstance(req.params.id, doc, function(err, data) {
-            console.log(err, data)
             if(err) {
                 res.send(400, err);
             } else {
@@ -377,7 +405,6 @@ server.get('/LINCS/instances/:id/controls', function(req, res){
         if(err) {
             res.send(400, err);
         } else {
-            console.log('control request succeeded');
             res.send(200, data);
         }
     });
@@ -400,7 +427,6 @@ server.get('/LINCS/instances/:id/controls', function(req, res){
 server.get('/LINCS/sh_controls', function(req, res) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    console.log(req.params);
     if(!checkParams(req.params, ['plate', 'cell', 'time'])) {
       res.send(400, "Getting shRNA controls requires: " +
                     "plate, cell, time");         

@@ -8,7 +8,7 @@ process.env.LINCS_DEVEL = 'true';
 
 var client = restify.createJsonClient({
     version: '*',
-    url: 'http://127.0.0.1:8083'
+    url: 'http://127.0.0.1:8084'
 });
 
 // start up the service before we run any tests!
@@ -33,7 +33,7 @@ describe('Server up', function() {
 });
 
 describe('LINCS methods', function() {
-  it('retrieves range of numerical indices', function(done) {
+  it.skip('retrieves range of numerical indices', function(done) {
     client.get('/LINCS/nidrange', function(err, req, res, data) {
       if (err) {
           throw new Error(err);
@@ -47,7 +47,7 @@ describe('LINCS methods', function() {
     });
   });
 
-  it('retrieves range of documents by NID range', function(done) {
+  it.skip('retrieves range of documents by NID range', function(done) {
   client.get('/LINCS/nidrange', function(err, req, res, data) {
       if (err) {
           throw new Error(err);
@@ -65,8 +65,17 @@ describe('LINCS methods', function() {
     });
   });
 
-  it('retrieves range of documents by document index (1..N)', function(done) {
+  it('retrieves range of document summaries by document range (1..N)', function(done) {
     client.get('/LINCS/summaries?skip=0&limit=10', function(err, req, res, data) {
+      if(err) throw(err);
+      checkResponse(res);
+      assert.equal(data.length, 10);
+      done();
+    });
+  });
+
+  it('retrieves range of document summaries by key fragment', function(done) {
+    client.get('/LINCS/summaries?key=AML001_CD34_24H_X1', function(err, req, res, data) {
       if(err) throw(err);
       checkResponse(res);
       assert.equal(data.length, 10);
@@ -76,7 +85,7 @@ describe('LINCS methods', function() {
 
   //lincs.instSamePlateVehicles("RAD001_MCF7_24H_X3_F1B5_DUO52HI53LO:N02")
   it('retrieves an instance', function(done) {
-    client.get('/LINCS/instances/CPC006_SNUC4_6H_X1_F2B4_DUO52HI53LO:K08', function(err, req, res, data) {
+    client.get('/LINCS/instances/12', function(err, req, res, data) {
       if (err) {
           throw err;
       } else {
@@ -88,13 +97,13 @@ describe('LINCS methods', function() {
   });
   
   it('retrieves control data for given instance', function(done) {
-    client.get('/LINCS/instances/CPC006_SNUC4_6H_X1_F2B4_DUO52HI53LO:K08/controls', function(err, req, res, data) {
+    client.get('/LINCS/instances/12/controls', function(err, req, res, data) {
       if (err) {
           throw err;
       } else {
         checkResponse(res);
         assert.ok(data[0].value.metadata);
-        assert.equal(data.length, 14);
+        assert.equal(data.length, 15);
         done();
       }
     });
