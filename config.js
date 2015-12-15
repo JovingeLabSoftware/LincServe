@@ -1,7 +1,7 @@
 var config = {
 	'prod': {
  	    'version': 1.0,
- 	    'port': 8082
+ 	    'port': 8080
 	},
 	'devel': {
  	    'version': 1.0,

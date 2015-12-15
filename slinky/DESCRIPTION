@@ -15,10 +15,11 @@ Depends:
     tidyjson
 Collate: 
     'slinky.R'
+    'SLSlice.R'
 Suggests: knitr,
     testthat
 VignetteBuilder: knitr
-LazyData: true
+LazyData: FALSE
 Description: Loads L1000 data from LINCS level 2 data file into document store and facilitates 
              analysis of that data including calcuation of z-scores and enrichment analysis.
 License: MIT

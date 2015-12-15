@@ -40,74 +40,7 @@ server.get('/LINCS', function(req, res){
     res.send(200, "Current endpoints: /LINCS/nidrange, /LINCS/summaries, /LINCS/summaries/nid.  See http://jovingelabsoftware.github.io/CouchLincs/api for details");
 });
 
-/**
- * @api {get} /LINCS/nidrange Request range of numerical index.
- * @apiDescription Remember that the numerical indices are used for 
- *  rapid paging/chunking.  They are NOT necessarily uniqe, NOT 
- *  contiguous, and NOT in any sort of order.  But they are FAST.
- * @apiName nixrange
- * @apiGroup LINCS
- *
- * @apiSuccess {integer} first Smallest index
- * @apiSuccess {integer} last  Largest index
- * @apiSuccessExample Success-Response: 
- * HTTP/1.1 200 OK
- * {
- * [ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
- *  summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },
- * { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
- *  summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]
- * }
- */
-server.get('/LINCS/nidrange', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    lincs.getNIDRange(function(err, data) {
-        if(err) {
-            res.send(400, err);
-        } else {
-            res.send(200, data);
-        }
-    });
-});
 
-/**
- * @api {GET} /LINCS/summaries/nid Request summary docs by numerical id range 
- * @apiName summaries_nid
- * @apiGroup LINCS
- * @apiDescription Remember that the numerical ids are used for 
- *  rapid paging/chunking.  They are NOT necessarily uniqe, NOT 
- *  contiguous, and NOT in any sort of order.  But they are FAST.
- *
- * @apiParam {Number} first Starting numerical index.
- * @apiParam {Number} last Ending numerical index.
- *
- * @apiSuccess {string} summaries Summary docs in JSON format
- * @apiSuccessExample Success-Response: 
- * HTTP/1.1 200 OK
- * {
- * [ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
- *  summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },
- * { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
- *  summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]
- * }
- */
-
-server.get('/LINCS/summaries/nid', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    lincs.getSummaries(req.params.first, req.params.last, true, function(err, data) {
-        if(err) {
-            res.send(400, err);
-        } else {
-        	var result = [];
-        	data.forEach(function(d) {
-        		result.push({id: d.id, summary: d.value})
-        	})
-            res.send(200, result);
-        }
-    });
-});
 
 
 /**
@@ -187,31 +120,38 @@ server.get('/LINCS/summaries', function(req, res){
  */
 server.get('/LINCS/instances', function(req, res) {
     req.params = dequote(req.params);
-    var limit = req.params.limit || 1000;
-    var skip = req.params.skip || 0;
-    var cell_line = req.params.cell || null;
-    var pert = req.params.pert || null;
-    var dose = req.params.dose || null;
-    var duration = req.params.duration || null;
-    var gold;
-    if (req.params.gold) {
-        gold = JSON.parse(String(req.params.gold).toLowerCase());
+    if(req.params.ids) {
+        lincs.get(req.params.ids)
+        .then(function(data) {
+            res.send(data);
+        })
     } else {
-        gold = null;
-    }
-    lincs.getByPert(cell_line, pert, Number(dose), Number(duration), Number(skip), Number(limit), gold, 
-                    function(err, data) {
-        if(err) {
-            res.send(400, err);
+        var limit = req.params.limit || 1000;
+        var skip = req.params.skip || 0;
+        var cell_line = req.params.cell || null;
+        var pert = req.params.pert || null;
+        var dose = req.params.dose || null;
+        var duration = req.params.duration || null;
+        var gold;
+        if (req.params.gold) {
+            gold = JSON.parse(String(req.params.gold).toLowerCase());
         } else {
-            res.send(200, data);
+            gold = null;
         }
-    });
+        lincs.getByPert(cell_line, pert, Number(dose), Number(duration), Number(skip), Number(limit), gold, 
+                        function(err, data) {
+            if(err) {
+                res.send(400, err);
+            } else {
+                res.send(200, data);
+            }
+        });
+    }
 });
 
 /**
  * @api {POST} /LINCS/data Post ids (either primary or view) and retrieve 
- *                          documentsCreate a perturbation data document
+ *                          documents
  * @apiName retrieveData
  * @apiGroup LINCS
  * @apiDescription Retrieves multiple docs by primary or view id
@@ -311,13 +251,14 @@ server.post('/LINCS/pert', function(req, res) {
 server.get('/LINCS/instances/:id', function(req, res){
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    lincs.getExpression(req.params.id, function(err, data) {
+    lincs.get(req.params.id, null, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
-            res.send(200, data);
+            res.send(200, data[0]);
         }
-    });
+        
+    })
 });
 
 /**
@@ -415,30 +356,21 @@ server.get('/LINCS/instances/:id/controls', function(req, res){
  * @api {GET} /LINCS/sh_controls Retrieve control data for shRNA
  * @apiName getShControls
  * @apiGroup LINCS
- * @apiDescription Retrieves the appropriate shRNA controls given plate id, 
- * cell line id, and timepoint
+ * @apiDescription Retrieves the appropriate shRNA controls 
  * 
- * @apiParam {String} plate Plate ID to pull controls from
- * @apiParam {String} cell Cell line ID to pull controls from
- * @apiParam {Numeric} time Timepoint to pull controls from
  * 
 */
 
-server.get('/LINCS/sh_controls', function(req, res) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    if(!checkParams(req.params, ['plate', 'cell', 'time'])) {
-      res.send(400, "Getting shRNA controls requires: " +
-                    "plate, cell, time");         
-    } else {
-      lincs.instShSamePlateVehicles(req.params.plate, req.params.cell, Number(req.params.time), function(err, data) {
-          if(err) {
-              res.send(400, err);
-          } else {
-              res.send(200, data);
-          }
-      });    
-    }
+server.get('/LINCS/instances/:id/sh_controls', function(req, res) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  lincs.instShSamePlateVehicles(req.params.id, function(err, data) {
+      if(err) {
+          res.send(400, err);
+      } else {
+          res.send(200, data);
+      }
+  });    
 });
 
 

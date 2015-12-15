@@ -33,35 +33,13 @@ describe('Server up', function() {
 });
 
 describe('LINCS methods', function() {
-  it.skip('retrieves range of numerical indices', function(done) {
-    client.get('/LINCS/nidrange', function(err, req, res, data) {
-      if (err) {
-          throw new Error(err);
-      }
-      else {
-          _range = data;
-          assert(data.min > 0);
-          assert(data.max > 0);
-          done();
-      }
-    });
-  });
 
-  it.skip('retrieves range of documents by NID range', function(done) {
-  client.get('/LINCS/nidrange', function(err, req, res, data) {
-      if (err) {
-          throw new Error(err);
-      } else {
-          // fetch about 0.001% of documents.
-          var inc = Math.floor((_range.max - _range.min) / 1000000);
-          client.get('/LINCS/summaries/nid?first=' + (data.max-inc) + "&last=" + data.max, function(err, req, res, data) {
-            if(err) {
-               throw(err);
-            }
-            assert.ok(data[0]);
-            done();
-          })
-      }
+  it('retrieves several instances by id', function(done) {
+    client.get('/LINCS/instances?ids=5,6,7', function(err, req, res, data) {
+      if(err) throw(err);
+      checkResponse(res);
+      assert.equal(data.length, 3);
+      done();
     });
   });
 
@@ -209,6 +187,21 @@ describe('LINCS methods', function() {
           done();
     });
   });
+  
+  it('retrieves the appropriate shRNA controls.', function(done) {
+
+    client.get('/LINCS/instances/5/sh_controls', function(err, req, res, data) {
+      if (err) {
+          throw err;
+      } else {
+            assert.ok(data[0]);
+            done();
+      }
+    });
+    
+  });
+  
+  
 });
 
 var checkResponse = function(res) {

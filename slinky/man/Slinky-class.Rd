@@ -42,7 +42,7 @@ of appropriate vehicle controls on same plate.
 }}
 \subsection{Return Value}{Vector containing robust z-scores for each gene.}}
 
-\item{\code{calc(cluster = NULL)}}{Calculate zscores and stores them in the document store.
+\item{\code{calc(method = NULL, cluster = NULL)}}{Calculate zscores and stores them in the document store.
 \subsection{Parameters}{
 \itemize{
 \item{\code{cluster} An optional cluster object to use for calculations. 
@@ -71,11 +71,12 @@ object included in this package and added to resulting document.
 \subsection{Return Value}{id(s) of resulting documents in doc store.}}
 
 \item{\code{setIp(ip = "127.0.0.1")}}{Set IP and redefine endpoint
-\subsection{Parameters}{
-\itemize{
-\item{\code{ip} The IP address of the your LINCS REST server, default is \code{127.0.0.1}.}
-}}
-\subsection{Return Value}{none}}
+  \subsection{Parameters}{
+  \itemize{
+
+  \item{\code{ip} The IP address of the your LINCS REST server, default is \code{127.0.0.1}.}
+  }}
+  \subsection{Return Value}{none}}
 
 \item{\code{setPort(port = "8080")}}{Set port and redefine endpoint
 \subsection{Parameters}{
@@ -83,6 +84,14 @@ object included in this package and added to resulting document.
 \item{\code{port} The port of the your LINCS REST server, default is \code{8080}.}
 }}
 \subsection{Return Value}{none}}
+
+\item{\code{zvscChemGold(ids)}}{Calculate zscores for specific instances relative to mean 
+of appropriate vehicle controls on same plate.
+\subsection{Parameters}{
+\itemize{
+\item{\code{id} Ids of instance for which scores are desired.}
+}}
+\subsection{Return Value}{None.}}
 }}
 \examples{
 lincs <- Slinky$new()
