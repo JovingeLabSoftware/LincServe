@@ -102,55 +102,106 @@ Slinky$methods(calc = function(method = NULL, cluster = NULL) {
     # iterate over the ids sequentially
     ids <- seq_len(inst_count)
     switch(method,
-      "ZSVC_L1000_gold" = .self$zvscChemGold(ids)
+      "ZSVC_L1000_gold" = .self$zvscChem(ids)
     )
   }
 
 })
 
 
-Slinky$methods(zvscChemGold = function(ids) {
+Slinky$methods(zvscChem = function(ncores = 5) {
   "Calculate zscores for specific instances relative to mean 
   of appropriate vehicle controls on same plate.
   \\subsection{Parameters}{
   \\itemize{
-  \\item{\\code{id} Ids of instance for which scores are desired.}
+  \\item{\\code{id} Ids of instance for which scores are desired. Should be monotonically increasing.}
   }}
   \\subsection{Return Value}{None.}"
   
-  rest <- .self$.endpoint
+  # smart way: use the metadata to fine the minimal set of z-scores
+  # you need to compute
+  if(!exists('metadata')) {
+    data("metadata")
+  }
+  subber <- metadata[,c('pert_desc', 'cell_id', 'pert_dose', 'pert_time')]
+  subber <- metadata[!duplicated(subber),]
   
-  # iterate through all passed instances
-  for(i in ids) {  
+  registerDoMC(ncores)
+  
+  foreach (i = 1:nrow(subber)) %dopar% {
+    
+    if (i %% 1000 == 0) .self$.log(level = "info", message = paste("Calculated", i, 'zscores'))
+    
     # TODO: re-implement REST endpoint for this
     if(.self$.checkZ(i)) next
-    
-    url <- paste0(rest, '/instances/', i)
-    res <- .self$.GET(url)
-    instance <- rjson::fromJSON(content(res, 'text'))
-    
-    if (.self$.checkPertGold(instance)) {
+    instance <- subber[i, ]
+    if (.self$.checkParam(instance)) {
       replicates <- .self$.getReplicates(
-        pert = instance$metadata$pert_desc, cell = instance$metadata$cell_id, 
-        dose = instance$metadata$pert_dose, 
-        duration = instance$metadata$pert_time
+        pert = instance$pert_desc, cell = instance$cell_id, 
+        dose = instance$pert_dose, 
+        duration = instance$pert_time,
+        gold = FALSE
       )
       
       if (nrow(replicates) > 1) {
         scores <- do.call(cbind, lapply(replicates$id, .self$ZbyPlate))
         gids <- rownames(scores)
         scores <- apply(scores, 1, mean)
-        .self$saveZ(doc_type = "ZSVC_L1000_gold", z_scores = scores, instance = instance)
+        .self$saveZ(doc_type = "ZSVC_L1000", z_scores = scores, 
+                    gene_ids = gids, instance = instance)
       } else {
-        .self$.log(level = "error", message = paste("NOREPS for instance", i))            
+        .self$.log(level = "error", message = paste("NOREPS for instance", i))
       }
     }
   }
 })
 
+Slinky$methods(zvscSh = function(ncores = 5) {
+  
+  # smart way: use the metadata to fine the minimal set of z-scores
+  # you need to compute
+  if(!exists('metadata')) {
+    data("metadata")
+  }
+  
+  subber <- filter(metadata, pert_type == 'trt_sh' & pert_desc != "-666")
+  subber <- subber[,c('pert_desc', 'cell_id', 'pert_dose', 'pert_time')]
+  subber <- subber[!duplicated(subber),]
+
+  registerDoMC(ncores)
+  
+  foreach (i = 1:nrow(subber)) %dopar% {
+    
+    if (i %% 1000 == 0) .self$.log(level = "info", message = paste("Calculated", i, 'zscores'))
+    
+    # TODO: re-implement REST endpoint for this
+    instance <- subber[i, ]
+    replicates <- .self$.getReplicates(
+      pert = instance$pert_desc, cell = instance$cell_id, 
+      dose = instance$pert_dose, 
+      duration = instance$pert_time,
+      gold = FALSE
+    )
+    
+    if (nrow(replicates) > 1) {
+      scores <- do.call(cbind, lapply(replicates$id, .self$ZbyPlate, endpoint = "/sh_controls"))
+      gids <- rownames(scores)
+      scores <- apply(scores, 1, mean)
+      .self$saveZ(doc_type = "ZSVC_L1000", z_scores = scores, 
+                  gene_ids = gids, instance = instance)
+    } else {
+      .self$.log(level = "error", message = paste("NOREPS for instance", i))
+    }
+    
+  }
+  
+    
+})
 
 
-Slinky$methods(ZbyPlate = function(id) {
+
+
+Slinky$methods(ZbyPlate = function(id, ...) {
   "Calculate zscores for specific instance relative to mean 
   of appropriate vehicle controls on same plate.
   \\subsection{Parameters}{
@@ -159,7 +210,7 @@ Slinky$methods(ZbyPlate = function(id) {
   }}
   \\subsection{Return Value}{Vector containing robust z-scores for each gene.}"
   
-  ctrl <- .self$getPlateControls(id)
+  ctrl <- .self$getPlateControls(id, ...)
   ctrl.m <- apply(ctrl, 1, mean)
   fc <- NULL
   tryCatch({
@@ -179,7 +230,7 @@ Slinky$methods(ZbyPlate = function(id) {
   fc
 })
 
-Slinky$methods(getPlateControls = function(id) {
+Slinky$methods(getPlateControls = function(id, endpoint = "/controls") {
   "Fetch normalized expression data for control samples from same plate as id
   and treated only with the vehicle used for sample id.
   \\subsection{Parameters}{
@@ -188,7 +239,7 @@ Slinky$methods(getPlateControls = function(id) {
   }}
   \\subsection{Return Value}{dataframe containing normalized gene expression
   for controls.}"
-  veh <- .self$.GET(paste(.self$.endpoint, "/instances/", id, "/controls", sep=""))
+  veh <- .self$.GET(paste(.self$.endpoint, "/instances/", id, endpoint, sep=""))
   if(length(veh)) {
     veh <- gsub('\"', '"', content(veh, "text")) # need to get rid of escapes 
     veh <- fromJSON(veh)
@@ -200,6 +251,10 @@ Slinky$methods(getPlateControls = function(id) {
     return(NULL)
   }
 })
+
+
+
+
 
 Slinky$methods(loadAll2 =function(nodes = 4, chunks=1000) {    
   ii <- 1:1328098
@@ -249,7 +304,7 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/q2norm_n1328098x2226
 })
 
 
-Slinky$methods(saveZ = function(doc_type, z_scores, instance) { 
+Slinky$methods(saveZ = function(doc_type, z_scores, gene_ids, instance) { 
 #   "Save the calculated z-scores to CouchBase via the REST API given a set of 
 #   relative expression values, a \\code{type} of document to store the scores
 #   as, and the \\code{list} representation of an \\code{q2norm} instance.
@@ -275,24 +330,26 @@ Slinky$methods(saveZ = function(doc_type, z_scores, instance) {
   #   gene_ids [String] from lincs
   #   data [Numeric] the scores (one per gene)
   
+  if (is.null(instance$is_gold)) instance$is_gold <- FALSE
+  
   url <- paste(.self$.endpoint, "/pert", sep="")
   query <- list(
-    perturbagen = jsonlite::unbox(instance$metadata$pert_desc),
-    dose = jsonlite::unbox(instance$metadata$pert_dose),
-    duration = jsonlite::unbox(instance$metadata$pert_time),
-    cell = jsonlite::unbox(instance$metadata$cell_id),
+    perturbagen = jsonlite::unbox(instance$pert_desc),
+    dose = jsonlite::unbox(instance$pert_dose),
+    duration = jsonlite::unbox(instance$pert_time),
+    cell = jsonlite::unbox(instance$cell_id),
     method = jsonlite::unbox(doc_type), 
-    gold = jsonlite::unbox(instance$metadata$is_gold),
-    gene_ids = instance$gene_ids,
+    gold = jsonlite::unbox(instance$is_gold),
+    gene_ids = gene_ids,
     data = z_scores
   )
 
   res <- .self$.POST(url = url, body = query, encode = "json", verbose = TRUE)
 
   if (res$status_code != 200L) {
-    .self$.log("error", paste("ERR failed to save zscores for instance", instance$metadata$cell_id, instance$metadata$pert_desc, instance$metadata$pert_dose, instance$metadata$pert_time))
+    .self$.log("error", paste("ERR failed to save zscores for instance", instance$cell_id, instance$pert_desc, instance$pert_dose, instance$pert_time))
   } else {
-    .self$.log("info", paste("OK saved zscores for", instance$metadata$cell_id, instance$metadata$pert_desc, instance$metadata$pert_dose, instance$metadata$pert_time))
+    .self$.log("info", paste("OK saved zscores for", instance$cell_id, instance$pert_desc, instance$pert_dose, instance$pert_time))
   }
   
 })
@@ -334,63 +391,24 @@ Slinky$methods(sliceMetadata = function(field, value, cols=NULL) {
 #  Verify applicable instance by parameters (i.e., perturbagen treated, gold instance)
 #
 #
-Slinky$methods(.checkParam = function(param) {
+Slinky$methods(.checkParam = function(param, check_gold = FALSE) {
   isok <- TRUE;
-  if(length(param$desc) == 0 || is.na(param$desc)) {
-    .self$.log("warn", paste("NODESC (no description)", 
-                             param$cell, param$desc, param$dose, param$time))            
+  if(length(param$pert_desc) == 0 || is.na(param$pert_desc)) {
+    .self$.log("warn", paste("NOpert_desc (no pert_description)", 
+                             param$cell_id, param$pert_desc, param$pert_dose, param$pert_time))            
     isok <- FALSE;
-  } else if(param$type != "trt_cp" || param$desc == "-666") {
-    # to do: support perturbagens with only BRD id and no description
-    .self$.log("warn", paste("NOCHEM (not a chemical perturbagen, treatment type", param$type, ")", 
-                             param$cell, param$desc, param$dose, param$time))            
+  } else if (param$pert_type != "trt_cp" || param$pert_desc == "-666") {
+    # to do: support perturbagens with only BRD id and no pert_description
+    .self$.log("warn", paste("NOCHEM (not a chemical perturbagen, treatment type", param$pert_type, ")", 
+                             param$cell_id, param$pert_desc, param$pert_dose, param$pert_time))            
     isok <- FALSE;
-  } else if(as.character(param$gold) == "FALSE") {  
-    # above is hacking around issue of "true" vs. true in metadata
-    .self$.log("warn", paste("NOGOLD (instance not gold)", 
-                             param$cell, param$desc, param$dose, param$time))            
-    isok <- FALSE;
-  }
-  return(isok)
-})
-
-
-
-
-Slinky$methods(.checkPertGold = function(instance) {
-  "Checks to see if an instance was treated by a chemical perturbagen and `is_gold`.
-  Takes a `list` representation of a `q2norm` document created from `rjson` and checks 
-  the `metadata` slot.
-  \\subsection{Parameters}{
-  \\itemize{
-  \\item{\\code{instance} a `list` representation of a `q2norm` document}
-  }}
-  \\subsection{Return Value}{`TRUE`/`FALSE`}"
-  
-  isok <- TRUE
-  if (!length(instance$metadata$pert_desc) || is.na(instance$metadata$pert_desc)) {
-    .self$.log("warn", paste("NODESC (no description)", 
-                             instance$metadata$cell_id, 
-                             instance$metadata$pert_desc, 
-                             instance$metadata$pert_dose, 
-                             instance$metadata$pert_time))            
-    isok <- FALSE;
-  } else if (instance$metadata$pert_type != "trt_cp" || instance$metadata$pert_desc == "-666") {
-    # to do: support perturbagens with only BRD id and no description
-    .self$.log("warn", paste("NOCHEM (not a chemical perturbagen, treatment type", instance$metadata$pert_type, ")", 
-                             instance$metadata$cell_id, 
-                             instance$metadata$pert_desc, 
-                             instance$metadata$pert_dose, 
-                             instance$metadata$pert_time))            
-    isok <- FALSE;
-  } else if (!instance$metadata$is_gold) {  
-    # above is hacking around issue of "true" vs. true in metadata
-    .self$.log("warn", paste("NOGOLD (instance not gold)", 
-                             instance$metadata$cell_id, 
-                             instance$metadata$pert_desc, 
-                             instance$metadata$pert_dose_unit, 
-                             instance$metadata$pert_time))            
-    isok <- FALSE;
+  } else if (check_gold) {
+    if (param$is_gold) {  
+      # above is hacking around issue of "true" vs. true in metadata
+      .self$.log("warn", paste("NOGOLD (instance not gold)", 
+                               param$cell_id, param$pert_desc, param$pert_dose, param$pert_time))            
+      isok <- FALSE;
+    }
   }
   return(isok)
 })
