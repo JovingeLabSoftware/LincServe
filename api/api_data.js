@@ -93,7 +93,7 @@ define({ "api": [
     "groupTitle": "LINCS",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS/pert"
+        "url": "true/LINCS/pert"
       }
     ]
   },
@@ -142,7 +142,7 @@ define({ "api": [
     "groupTitle": "LINCS",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS/instances/:id/controls"
+        "url": "true/LINCS/instances/:id/controls"
       }
     ]
   },
@@ -212,7 +212,7 @@ define({ "api": [
     "groupTitle": "LINCS",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS/instances"
+        "url": "true/LINCS/instances"
       }
     ]
   },
@@ -228,7 +228,7 @@ define({ "api": [
     "groupTitle": "LINCS",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS/sh_controls"
+        "url": "true/LINCS/sh_controls"
       }
     ]
   },
@@ -277,7 +277,7 @@ define({ "api": [
     "groupTitle": "LINCS",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS/instances/:id"
+        "url": "true/LINCS/instances/:id"
       }
     ]
   },
@@ -354,7 +354,7 @@ define({ "api": [
     "groupTitle": "LINCS",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS/instances"
+        "url": "true/LINCS/instances"
       }
     ]
   },
@@ -410,7 +410,7 @@ define({ "api": [
     "groupTitle": "LINCS",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS/data Post ids (either primary or view) and retrieve"
+        "url": "true/LINCS/data Post ids (either primary or view) and retrieve"
       }
     ]
   },
@@ -466,7 +466,7 @@ define({ "api": [
     "groupTitle": "LINCS",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS/summaries"
+        "url": "true/LINCS/summaries"
       }
     ]
   },
@@ -508,7 +508,7 @@ define({ "api": [
     "groupTitle": "Root",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/"
+        "url": "true/"
       }
     ]
   },
@@ -536,7 +536,7 @@ define({ "api": [
     "groupTitle": "Root",
     "sampleRequest": [
       {
-        "url": "http://54.152.59.84:8080/LINCS"
+        "url": "true/LINCS"
       }
     ]
   }
