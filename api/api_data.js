@@ -90,7 +90,12 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "LINCS",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS/pert"
+      }
+    ]
   },
   {
     "type": "GET",
@@ -134,7 +139,12 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "LINCS",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS/instances/:id/controls"
+      }
+    ]
   },
   {
     "type": "GET",
@@ -199,7 +209,12 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "LINCS",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS/instances"
+      }
+    ]
   },
   {
     "type": "GET",
@@ -210,7 +225,12 @@ define({ "api": [
     "description": "<p>Retrieves the appropriate shRNA controls</p> ",
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "LINCS",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS/sh_controls"
+      }
+    ]
   },
   {
     "type": "GET",
@@ -254,7 +274,12 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "LINCS",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS/instances/:id"
+      }
+    ]
   },
   {
     "type": "POST",
@@ -326,7 +351,12 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "LINCS",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS/instances"
+      }
+    ]
   },
   {
     "type": "POST",
@@ -377,7 +407,12 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "LINCS",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS/data Post ids (either primary or view) and retrieve"
+      }
+    ]
   },
   {
     "type": "GET",
@@ -428,7 +463,12 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "LINCS",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS/summaries"
+      }
+    ]
   },
   {
     "type": "get",
@@ -493,6 +533,11 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "Root"
+    "groupTitle": "Root",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/LINCS"
+      }
+    ]
   }
 ] });
