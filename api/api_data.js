@@ -94,6 +94,64 @@ define({ "api": [
   },
   {
     "type": "GET",
+    "url": "/LINCS/summaries",
+    "title": "Request summary docs",
+    "name": "deprecatedSummaries",
+    "group": "LINCS",
+    "description": "<p>THIS ENDPOINT IS DEPRECATED.  Please migrate to /LINCS/instances</p> ",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "<p>string</p> ",
+            "optional": false,
+            "field": "key",
+            "description": "<p>(distil_id) or key fragment (optional)</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>Number</p> ",
+            "optional": false,
+            "field": "skip",
+            "description": "<p>Starting numerical index.  Default is 0.</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>Number</p> ",
+            "optional": false,
+            "field": "limit",
+            "description": "<p>Ending numerical index. Default is 10.</p> "
+          }
+        ]
+      }
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "<p>string</p> ",
+            "optional": false,
+            "field": "summaries",
+            "description": "<p>Summary docs in JSON format</p> "
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response: ",
+          "content": "HTTP/1.1 200 OK\n{\n[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',\n summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },\n  { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',\n summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "bin/app.js",
+    "groupTitle": "LINCS"
+  },
+  {
+    "type": "GET",
     "url": "/LINCS/instances/:id/controls",
     "title": "Retrieve control data",
     "name": "getControls",
@@ -257,6 +315,108 @@ define({ "api": [
     "groupTitle": "LINCS"
   },
   {
+    "type": "GET",
+    "url": "/LINCS/instances/:distil_id/metadata",
+    "title": "Request summary docs by document index (1..N)",
+    "name": "instanceMetadata",
+    "group": "LINCS",
+    "description": "<p>Fetch metadata for a given instand by distil_id</p> ",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "<p>string</p> ",
+            "optional": false,
+            "field": "distil_id",
+            "description": "<p>Id of instance</p> "
+          }
+        ]
+      }
+    },
+    "examples": [
+      {
+        "title": "Example usage:",
+        "content": "curl localhost:8080/LINCS/instances/\\\n   CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05/metadata",
+        "type": "curl"
+      }
+    ],
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "<p>Object</p> ",
+            "optional": false,
+            "field": "metadata",
+            "description": "<p>Metadats docs in JSON format</p> "
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response: ",
+          "content": "HTTP/1.1 200 OK\nContent-Type: application/json\n{\n  \"metadata\": {\n    \"det_plate\": \"AML001_CD34_24H_X1_F1B10\",\n    \"is_gold\": true,\n    \"pert_vehicle\": \"DMSO\",\n    \"pert_type\": \"trt_cp\",\n    \"distil_id\": \"AML001_CD34_24H_X1_F1B10:A03\",\n    \"pert_id\": \"BRD-K49071277\",\n    \"pert_desc\": \"SECURININE\",\n    \"cell_id\": \"CD34\",\n    \"pert_time\": 24,\n    \"pert_time_unit\": \"h\",\n    \"pert_dose\": 10,\n    \"pert_dose_unit\": \"um\"\n  },\n  \"id\": \"1230884\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "bin/app.js",
+    "groupTitle": "LINCS"
+  },
+  {
+    "type": "POST",
+    "url": "/LINCS/instances/query/metadata Request metadata for",
+    "title": "multiple docs",
+    "name": "instancesMetadata",
+    "group": "LINCS",
+    "description": "<p>Fetch metadata for given instance by distil_id</p> ",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "<p>string[]</p> ",
+            "optional": false,
+            "field": "keys",
+            "description": "<p>distilIds of instances</p> "
+          }
+        ]
+      }
+    },
+    "examples": [
+      {
+        "title": "Example usage:",
+        "content": "curl -d '{\"keys\": [\"CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05\", \"CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05\"]}' \\\n      localhost:8085/LINCS/instances/metadata \\\n      -H \"Content-Type: application/json\" *",
+        "type": "curl"
+      }
+    ],
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "<p>Object</p> ",
+            "optional": false,
+            "field": "metadata",
+            "description": "<p>Metadats docs in JSON format</p> "
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Success-Response: ",
+          "content": "HTTP/1.1 200 OK\nContent-Type: application/json\n[  \n{\n   \"key\": \"CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05\",\n   \"metadata\": {\n     \"det_plate\": \"CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO\",\n     \"is_gold\": true,\n     \"pert_vehicle\": \"DMSO\",\n     \"pert_type\": \"trt_cp\",\n     \"distil_id\": \"CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05\",\n     \"pert_id\": \"BRD-A64228451\",\n     \"pert_desc\": \"EI-328\",\n     \"cell_id\": \"VCAP\",\n     \"pert_time\": 6,\n     \"pert_time_unit\": \"h\",\n     \"pert_dose\": 10,\n     \"pert_dose_unit\": \"um\"\n   },\n   \"id\": \"312240\"\n } *\n... // truncated\n]",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "bin/app.js",
+    "groupTitle": "LINCS"
+  },
+  {
     "type": "POST",
     "url": "/LINCS/instances",
     "title": "Save instance data to server",
@@ -380,32 +540,11 @@ define({ "api": [
     "groupTitle": "LINCS"
   },
   {
-    "type": "GET",
-    "url": "/LINCS/summaries",
-    "title": "Request summary docs by document index (1..N)",
-    "name": "summaries",
-    "group": "LINCS",
-    "description": "<p>Remember that the numerical ids are used for rapid paging/chunking.  They are NOT necessarily uniqe, NOT contiguous, and NOT in any sort of order.  But they are FAST.</p> ",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "<p>Number</p> ",
-            "optional": false,
-            "field": "skip",
-            "description": "<p>Starting numerical index.</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>Number</p> ",
-            "optional": false,
-            "field": "limit",
-            "description": "<p>Ending numerical index.</p> "
-          }
-        ]
-      }
-    },
+    "type": "get",
+    "url": "/LINCS",
+    "title": "Get some documentation on endpoints.",
+    "name": "Root",
+    "group": "Root",
     "success": {
       "fields": {
         "Success 200": [
@@ -413,22 +552,15 @@ define({ "api": [
             "group": "Success 200",
             "type": "<p>string</p> ",
             "optional": false,
-            "field": "summaries",
-            "description": "<p>Summary docs in JSON format</p> "
+            "field": "response",
+            "description": "<p>Some useful information.</p> "
           }
         ]
-      },
-      "examples": [
-        {
-          "title": "Success-Response: ",
-          "content": "HTTP/1.1 200 OK\n{\n[ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',\n summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },\n  { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',\n summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]\n}",
-          "type": "json"
-        }
-      ]
+      }
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS"
+    "groupTitle": "Root"
   },
   {
     "type": "get",
@@ -462,29 +594,6 @@ define({ "api": [
           "type": "json"
         }
       ]
-    },
-    "version": "0.0.0",
-    "filename": "bin/app.js",
-    "groupTitle": "Root"
-  },
-  {
-    "type": "get",
-    "url": "/LINCS",
-    "title": "Get some documentation on endpoints.",
-    "name": "Root",
-    "group": "Root",
-    "success": {
-      "fields": {
-        "Success 200": [
-          {
-            "group": "Success 200",
-            "type": "<p>string</p> ",
-            "optional": false,
-            "field": "response",
-            "description": "<p>Some useful information.</p> "
-          }
-        ]
-      }
     },
     "version": "0.0.0",
     "filename": "bin/app.js",

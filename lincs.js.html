@@ -93,17 +93,20 @@ var LINCS = function () {
  */
 LINCS.prototype.get = function(keys, view, cb) {
   var deferred = Q.defer();
-  keys = keys.split(",");
   keys = [].concat(keys); // make sure it's an array even if single value
   if(view) {
     this._getMultiView(keys, view)
-    .then(function(x) {
-      deferred.resolve(x)
-    })
+    .then(function(data) {
+      var results = [];  // need to flatten array from chunked requests
+      data.forEach(function(dd) {
+        dd.forEach(function(d) { results.push({id: d.id, metadata: d.value, key: d.key}) });
+      });
+      deferred.resolve(results);
+    });
   } else { // must be primary index keys
     this._getMulti(keys)
     .then(function(x) {
-      deferred.resolve(x)
+      deferred.resolve(x);
     })
     .catch(function(err) {
       throw(err);
@@ -137,15 +140,21 @@ LINCS.prototype._getMulti = function(keys) {
  * @param {string} view Name of view, null if keys are primary index keys
  */
 LINCS.prototype._getMultiView = function(keys, view) {
-  var promises = []
-  while(ids.length>0) {
+  var promises = [];
+  var ddoc = 'lincs';
+  if(view.match("/")) {
+    var d_v = view.split("/");
+    ddoc = d_v[0];
+    view = d_v[1]
+  }
+  while(keys.length>0) {
     var deferred = Q.defer();
-    var i = ids.splice(0, LINCS_MAXGET);
-    var query = this.view.from('lincs', view)
+    var k = keys.splice(0, LINCS_MAXGET);
+    var query = this.view.from(ddoc, view)
       .reduce(false)
-      .keys(keys);
-    this._qq.push({query: query, promise: deferred.promise});
-    promises.push(deferred)
+      .keys(k);
+    this._qq.push({query: query, promise: deferred});
+    promises.push(deferred.promise);
     this._goQQ();
   }
   return Q.all(promises);
@@ -162,6 +171,7 @@ LINCS.prototype._goQQ = function() {
     this._throttle++;
     if(q.hasOwnProperty("query")) {
       this.bucket.query(q.query, function(err, results) { 
+          console.log(err, results)
         if(err) {
           _self._throttle--;
           q.promise.reject(err);
@@ -656,7 +666,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Wed Dec 16 2015 15:38:57 GMT+0000 (UTC)
+    Documentation generated at Wed Dec 16 2015 17:04:39 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
