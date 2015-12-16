@@ -90,12 +90,7 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS/pert"
-      }
-    ]
+    "groupTitle": "LINCS"
   },
   {
     "type": "GET",
@@ -139,12 +134,7 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS/instances/:id/controls"
-      }
-    ]
+    "groupTitle": "LINCS"
   },
   {
     "type": "GET",
@@ -209,12 +199,7 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS/instances"
-      }
-    ]
+    "groupTitle": "LINCS"
   },
   {
     "type": "GET",
@@ -225,12 +210,7 @@ define({ "api": [
     "description": "<p>Retrieves the appropriate shRNA controls</p> ",
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS/sh_controls"
-      }
-    ]
+    "groupTitle": "LINCS"
   },
   {
     "type": "GET",
@@ -274,12 +254,7 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS/instances/:id"
-      }
-    ]
+    "groupTitle": "LINCS"
   },
   {
     "type": "POST",
@@ -351,12 +326,7 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS/instances"
-      }
-    ]
+    "groupTitle": "LINCS"
   },
   {
     "type": "POST",
@@ -407,12 +377,7 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS/data Post ids (either primary or view) and retrieve"
-      }
-    ]
+    "groupTitle": "LINCS"
   },
   {
     "type": "GET",
@@ -463,12 +428,7 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "LINCS",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS/summaries"
-      }
-    ]
+    "groupTitle": "LINCS"
   },
   {
     "type": "get",
@@ -505,12 +465,7 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "Root",
-    "sampleRequest": [
-      {
-        "url": "true/"
-      }
-    ]
+    "groupTitle": "Root"
   },
   {
     "type": "get",
@@ -533,11 +488,6 @@ define({ "api": [
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "Root",
-    "sampleRequest": [
-      {
-        "url": "true/LINCS"
-      }
-    ]
+    "groupTitle": "Root"
   }
 ] });
