@@ -192,14 +192,46 @@ Slinky$methods(zvscSh = function(ncores = 5) {
     } else {
       .self$.log(level = "error", message = paste("NOREPS for instance", i))
     }
-    
   }
-  
-    
 })
 
+Slinky$methods(zspc = function(ncores = 5) {
+  registerDoMC(ncores)
+  if (!exists('metadata')) {
+    data("metadata")
+  }
 
+  plates <- unique(metadata$det_plate)
+  foreach (i = seq_along(plates)) %dopar% {
+    url <- paste0("http://", .self$.ip, ":8092/LINCS/_design/debug/_view/plate_lookup?inclusive_end=true&stale=false&connection_timeout=60000&skip=0&key=%22", plates[i], "%22")
+    res <- .self$.GET(url = url)
+    kk <- rjson::fromJSON(content(res, 'text'))$rows
+   
+    instances <- lapply(kk, function(x) {
+      u2 <- paste0(.self$.endpoint, '/instances/', x$id)
+      it <- .self$.GET(u2)
+      rjson::fromJSON(content(it, 'text'))
+    })
 
+    f <- function(x) x$data
+    fid <- function(x) x$id
+    exprs <- do.call(cbind, lapply(instances, f))
+    rownames(exprs) <- instances[[1]]$gene_ids
+    colnames(exprs) <- lapply(kk, fid)
+        
+    # robust z-score description
+    # http://support.lincscloud.org/hc/en-us/articles/202099616-Signature-Generation-and-Analysis-L1000-
+    rbz <- function(x) (x - median(x)) / (mad(x) * 1.4826)
+    norm_exprs <- apply(exprs, MARGIN = 1, FUN = rbz)
+
+    for (j in seq_along(kk)) {
+      stopifnot(kk[[j]]$id == rownames(norm_exprs)[j])
+      inst <- instances[[j]]$metadata
+      .self$saveZ(doc_type = "ZSPC_L1000", z_scores = unname(norm_exprs[j,]), 
+                  gene_ids = colnames(norm_exprs), instance = inst)
+    }
+  }
+})
 
 Slinky$methods(ZbyPlate = function(id, ...) {
   "Calculate zscores for specific instance relative to mean 
