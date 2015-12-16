@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li><li data-type='method'><a href="LINCS.html#getZSVC">getZSVC</a></li><li data-type='method'><a href="LINCS.html#instSamePlateVehicles">instSamePlateVehicles</a></li><li data-type='method'><a href="LINCS.html#saveInstance">saveInstance</a></li><li data-type='method'><a href="LINCS.html#savePert">savePert</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#_getMulti">_getMulti</a></li><li data-type='method'><a href="LINCS.html#_getMultiView">_getMultiView</a></li><li data-type='method'><a href="LINCS.html#_goQQ">_goQQ</a></li><li data-type='method'><a href="LINCS.html#get">get</a></li><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li><li data-type='method'><a href="LINCS.html#getZSVC">getZSVC</a></li><li data-type='method'><a href="LINCS.html#instSamePlateVehicles">instSamePlateVehicles</a></li><li data-type='method'><a href="LINCS.html#instShSamePlateVehicles">instShSamePlateVehicles</a></li><li data-type='method'><a href="LINCS.html#saveInstance">saveInstance</a></li><li data-type='method'><a href="LINCS.html#savePert">savePert</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -51,6 +51,8 @@ var config = require('../config');
  * @example
  * lincs = require('lincs');
  */
+var LINCS_MAXGET = 20;
+var LINCS_THROTTLE = 100;
 
 var LINCS = function () {
 	var _couchbase = require('couchbase');
@@ -59,10 +61,15 @@ var LINCS = function () {
     if(err) {
       throw new Error("Failed to connect to bucket.  Please confirm connection details in config.json");
     }
+    _bucket.connectionTimeout = 5000;
+    _bucket.operationTimeout = 5000;
   });
   var n1ql_url = "http://" + config.couchdb.ip + ":8093";
   var _n1ql = _couchbase.N1qlQuery;
   _bucket.enableN1ql([n1ql_url]);
+
+
+  
   var _view = _couchbase.ViewQuery;
 
    // no reason to do this now, but preparing for more logic 
@@ -71,7 +78,124 @@ var LINCS = function () {
    this.bucket = _bucket;
    this.view = _view;
    this.n1ql = _n1ql;
+
+   // query queue
+   this._qq = [];
+   this._throttle = 0;
 };
+
+/**
+ * Get data for a set of keys (either primary or view).
+ * @param {[string]} keys List of keys. 
+ * @param {string} view Name of view, null if keys are primary index keys
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ * @example lincs.get("1").then(function(x) { console.log(x) });
+ */
+LINCS.prototype.get = function(keys, view, cb) {
+  var deferred = Q.defer();
+  keys = keys.split(",");
+  keys = [].concat(keys); // make sure it's an array even if single value
+  if(view) {
+    this._getMultiView(keys, view)
+    .then(function(x) {
+      deferred.resolve(x)
+    })
+  } else { // must be primary index keys
+    this._getMulti(keys)
+    .then(function(x) {
+      deferred.resolve(x)
+    })
+    .catch(function(err) {
+      throw(err);
+    });
+  }
+  deferred.promise.nodeify(cb);
+  return deferred.promise;
+};
+
+/**
+ * Private: Get multiple documents by primary key.  Unlike couchbase getMulti, 
+ * this version is throttled.
+ * @param {[string]} keys List of keys. 
+ */
+LINCS.prototype._getMulti = function(keys) {
+  var promises = []
+  keys = [].concat(keys);
+  while(keys.length > 0) {
+    var deferred = Q.defer();
+    this._qq.push({key: keys.shift(), promise: deferred});
+    promises.push(deferred.promise)
+    this._goQQ();
+  }
+  return Q.all(promises);
+}
+
+/**
+ * Private: Get multiple documents by view key.  Unlike couchbase getMulti, 
+ * this version is throttled.
+ * @param {[string]} keys List of keys. 
+ * @param {string} view Name of view, null if keys are primary index keys
+ */
+LINCS.prototype._getMultiView = function(keys, view) {
+  var promises = []
+  while(ids.length>0) {
+    var deferred = Q.defer();
+    var i = ids.splice(0, LINCS_MAXGET);
+    var query = this.view.from('lincs', view)
+      .reduce(false)
+      .keys(keys);
+    this._qq.push({query: query, promise: deferred.promise});
+    promises.push(deferred)
+    this._goQQ();
+  }
+  return Q.all(promises);
+}
+
+
+/**
+ * Private: Process the Query Queue with throttling.
+ */
+LINCS.prototype._goQQ = function() {
+  var _self = this;
+  if(this._qq.length &amp;&amp; this._throttle &lt; LINCS_THROTTLE) {
+    var q = this._qq.shift();
+    this._throttle++;
+    if(q.hasOwnProperty("query")) {
+      this.bucket.query(q.query, function(err, results) { 
+        if(err) {
+          _self._throttle--;
+          q.promise.reject(err);
+          _self._goQQ();
+        } else {
+          _self._throttle--;
+          q.promise.resolve(results);
+          _self._goQQ();
+        }
+      });          
+    } else if(q.hasOwnProperty("key")) { // seems to be an id
+      _self.bucket.get(String(q.key), function(err, results) {
+        if(err) {
+          _self._throttle--;
+          if(err.message.match("does not exist on the server")) {
+            q.promise.resolve(null)
+          } else {
+            q.promise.reject(err);            
+          }
+          _self._goQQ();
+        } else {
+          _self._throttle--;
+          q.promise.resolve(results.value);
+          _self._goQQ();
+        }
+      });
+    } else {
+      _self._throttle--;
+      q.promise.reject(new Error("queued queries must contain either a query object or key"));
+      _self._goQQ();
+    }
+  }
+}
+
 
 /**
  * Get gold instances for given cell line.
@@ -118,7 +242,8 @@ LINCS.prototype.getVehicle = function(key, cb) {
   			deferred.reject(err);
   		} else {
 	  		deferred.resolve({vehicle: doc.value.metadata.pert_vehicle, 
-	  		                  pert_time: doc.value.metadata.pert_time});
+	  		                  pert_time: doc.value.metadata.pert_time,
+	  		                  det_plate: doc.value.metadata.det_plate});
   		}
   	});
   	deferred.promise.nodeify(cb);
@@ -136,9 +261,9 @@ LINCS.prototype.instSamePlateVehicles = function(key, cb) {
 	var _self = this;
 	this.getVehicle(key)
 	.then(function(v) {
-    var plate = key.replace(/\:.*/, "");
+    // var plate = key.replace(/\:.*/, "");
     var query = _self.view.from('lincs', 'vehicle_by_plate')
-        .reduce(false).key( [plate, v.vehicle, v.pert_time]);
+        .reduce(false).key( [v.det_plate, v.vehicle, v.pert_time]);
     _self.bucket.query(query, function(err, results) { 
       if(err) {
         deferred.reject(err);
@@ -167,6 +292,49 @@ LINCS.prototype.instSamePlateVehicles = function(key, cb) {
 
 
 /**
+ * Get the appropriate shRNA controls given plate id, cell line id, and timepoint
+ * @param {string} id The id of the re
+ * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ */
+
+LINCS.prototype.instShSamePlateVehicles = function(id, cb) {
+	var deferred = Q.defer();
+	var _self = this;
+	this.bucket.get(id, function(err, x) {
+    var instance = {cell: x.value.metadata.cell_id, time: x.value.metadata.pert_time, plate: x.value.metadata.det_plate};
+  	var query = _self.view.from('debug', 'sh_plate_controls').reduce(false)
+  	            .key([instance.plate, instance.cell, instance.time]);
+  	_self.bucket.query(query, function(err, results) {
+  	 if(err) {
+          deferred.reject(err);
+        } else {
+          var ids = results.map(function(r) {
+            return(r.id);
+          });
+          Q.all(ids.map(function(id) {
+            var d = Q.defer();
+            _self.bucket.get(id, function(err, results) {
+              if(err) {
+                d.reject(err);
+              } else {
+                d.resolve({id: id, value: results.value});
+              }
+            });
+            return(d.promise);
+          }))
+          .then(deferred.resolve);
+        }
+  	});
+	})
+
+	deferred.promise.nodeify(cb);
+  return deferred.promise;
+};
+
+
+
+
+/**
  * Get the Q2NORM data for a given instance (L1000 only)
  * @param {string} key The key of the desired instance
  * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
@@ -177,7 +345,7 @@ LINCS.prototype.getExpression = function(key, cb) {
 		if(err) {
 			deferred.reject(err);
 		} else {
-  		deferred.resolve({gene_ids: doc.value.gene_ids, metadata: doc.value.metadata, norm_exp: doc.value.norm_exp});
+  		deferred.resolve({gene_ids: doc.value.gene_ids, metadata: doc.value.metadata, data: doc.value.data});
 		}
 	});
 	deferred.promise.nodeify(cb);
@@ -229,36 +397,31 @@ LINCS.prototype.getNIDRange = function(cb) {
 };
 
 /**
- * Get a set of doc summaries by NID (numerical ID) or index range.  NOTE: NIDs are NOT unique.  Expect
- * to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
- * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
- * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
- * on a view is much faster, and using key ranges is even faster. 
- * @param {integer} first First numerical index to return.
- * @param {integer} last Last numerical index to return (inclusive).
- * @param {boolean} NID Are first and last NIDs?  Alternative is document number ("page").
+ * Retrieve document summaries by offset or key prefix
+ * @param {string} key View key (distil_id) to retrieve.  Can provide starting fragment
+                   only (expands to regex \\code{key.*}).  Can be null
+ * @param {integer} skip Skip (for paging, defaults to 0).
+ * @param {integer} limit Number of docs to return (for paging, defaults to 10).
  * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
  */
-LINCS.prototype.getSummaries = function(first, last, NID, cb) {
+LINCS.prototype.getSummaries = function(key, skip, limit, cb) {
+  key = key || "";
   var deferred = Q.defer();
-  var query = this.view.from('lincs', 'numerical_index')
-    .reduce(false);
-  if(NID) {
-    query.options.startkey = first;  // query.range does not work because it adds quotes
-    query.options.endkey = last;
-  } else {
-    query = query.skip(first).limit(last-first);    
-  }
-  this.bucket.query(query, function(err, results) { 
-      if(err) {
-        deferred.reject(err);
-      } else {
-        deferred.resolve(results);
-      }
-    });
+  var query = this.view.from('metadata', 'metadata')
+    .reduce(false)
+    .range(key, key+"\uefff");
+  query = query.skip(skip || 0).limit(limit || 10);    
 
-    deferred.promise.nodeify(cb);
-    return deferred.promise;
+  this.bucket.query(query, function(err, results) { 
+    if(err) {
+      deferred.reject(err);
+    } else {
+      deferred.resolve(results);
+    }
+  });
+
+  deferred.promise.nodeify(cb);
+  return deferred.promise;
 };
 
 /**
@@ -390,7 +553,7 @@ LINCS.prototype.getZSVC = function(cell_line,
  */
 LINCS.prototype.savePert = function(doc, cb){
   var deferred = Q.defer();
-  if(!this._checkParams(doc, ['method', 'dose', 'perturbagen', 'duration', 'gene_ids', 'data', 'type'])){
+  if(!this._checkParams(doc, ['method', 'dose', 'perturbagen', 'duration', 'gene_ids', 'data'])){
     return(deferred.reject(new Error("document did not contain required parameters (saveInstance")));
   } else {
     if(doc.gene_ids.length != doc.data.length) {
@@ -423,6 +586,8 @@ LINCS.prototype.savePert = function(doc, cb){
  */
 LINCS.prototype.saveInstance = function(id, doc, cb){
   var deferred = Q.defer();
+  
+
    if(!this._checkParams(doc, ['metadata', 'gene_ids', 'data', 'type'])){
 
     deferred.reject(new Error("document did not contain required parameters (saveInstance"));
@@ -491,7 +656,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Tue Dec 08 2015 22:33:39 GMT+0000 (UTC)
+    Documentation generated at Wed Dec 16 2015 15:15:35 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
