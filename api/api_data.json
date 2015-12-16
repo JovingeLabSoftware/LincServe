@@ -503,14 +503,14 @@
         }
       ]
     },
-    "sampleRequest": [
-      {
-        "url": "/"
-      }
-    ],
     "version": "0.0.0",
     "filename": "bin/app.js",
-    "groupTitle": "Root"
+    "groupTitle": "Root",
+    "sampleRequest": [
+      {
+        "url": "http://54.152.59.84:8080/"
+      }
+    ]
   },
   {
     "type": "get",
