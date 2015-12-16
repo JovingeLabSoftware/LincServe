@@ -436,9 +436,11 @@ define({ "api": [
     "title": "Root.  Verify server up and receive useful advice.",
     "name": "Root",
     "group": "Root",
-    "sampleRequest": [
+    "examples": [
       {
-        "url": "@apiExample {curl} Example usage:\n          curl http://localhost:8080/"
+        "title": "Example usage:",
+        "content": "curl http://localhost:8080/",
+        "type": "curl"
       }
     ],
     "success": {
@@ -461,6 +463,11 @@ define({ "api": [
         }
       ]
     },
+    "sampleRequest": [
+      {
+        "url": "/"
+      }
+    ],
     "version": "0.0.0",
     "filename": "bin/app.js",
     "groupTitle": "Root"
