@@ -86,7 +86,7 @@ var LINCS = function () {
 
 /**
  * Get data for a set of keys (either primary or view).
- * @param {[string]} keys List of keys. 
+ * @param {string[]} keys List of keys. 
  * @param {string} view Name of view, null if keys are primary index keys
  * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
  * @example lincs.get("1").then(function(x) { console.log(x) });
@@ -116,7 +116,7 @@ LINCS.prototype.get = function(keys, view, cb) {
 /**
  * Private: Get multiple documents by primary key.  Unlike couchbase getMulti, 
  * this version is throttled.
- * @param {[string]} keys List of keys. 
+ * @param {string[]} keys List of keys. 
  */
 LINCS.prototype._getMulti = function(keys) {
   var promises = []
@@ -133,7 +133,7 @@ LINCS.prototype._getMulti = function(keys) {
 /**
  * Private: Get multiple documents by view key.  Unlike couchbase getMulti, 
  * this version is throttled.
- * @param {[string]} keys List of keys. 
+ * @param {string[]} keys List of keys. 
  * @param {string} view Name of view, null if keys are primary index keys
  */
 LINCS.prototype._getMultiView = function(keys, view) {
@@ -656,7 +656,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Wed Dec 16 2015 15:18:37 GMT+0000 (UTC)
+    Documentation generated at Wed Dec 16 2015 15:18:45 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
