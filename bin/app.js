@@ -12,6 +12,11 @@ server.use(restify.bodyParser());
 server.use(restify.fullResponse());
 server.use(restify.CORS());
 server.use(restify.queryParser());
+restify.defaultResponseHeaders = function(data) {
+    this.header("Access-Control-Allow-Origin", "*");
+    this.header("Access-Control-Allow-Headers", "X-Requested-With");
+    this.contentType = 'json';
+};
 
 
 /**
@@ -19,6 +24,8 @@ server.use(restify.queryParser());
  * @apiName Root
  * @apiGroup Root
  *
+ * @apiExample {curl} Example usage:
+ *           curl http://localhost:8080/
  * @apiSuccess {string} response
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 200 OK
@@ -41,120 +48,171 @@ server.get('/LINCS', function(req, res){
 });
 
 
-
-
 /**
- * @api {GET} /LINCS/summaries Request summary docs by document index (1..N) 
- * @apiName summaries
+ * @api {GET} /LINCS/instances/:distil_id/metadata Request metadata 
+ * @apiName instanceMetadata
  * @apiGroup LINCS
- * @apiDescription Remember that the numerical ids are used for 
- *  rapid paging/chunking.  They are NOT necessarily uniqe, NOT 
- *  contiguous, and NOT in any sort of order.  But they are FAST.
+ * @apiDescription Fetch metadata for a given instance by distil_id
+ * @apiParam {string} distil_id Id of instance
+ * @apiExample {curl} Example usage:
+ *           curl localhost:8080/LINCS/instances/\
+ *              CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05/metadata
  *
- * @apiParam {Number} skip Starting numerical index.
- * @apiParam {Number} limit Ending numerical index.
- *
- * @apiSuccess {string} summaries Summary docs in JSON format
+ * @apiSuccess {Object} metadata Metadats docs in JSON format
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 200 OK
+ * Content-Type: application/json
  * {
- * [ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
- *  summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },
- *   { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
- *  summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]
- * }    
+ *   "metadata": {
+ *     "det_plate": "AML001_CD34_24H_X1_F1B10",
+ *     "is_gold": true,
+ *     "pert_vehicle": "DMSO",
+ *     "pert_type": "trt_cp",
+ *     "distil_id": "AML001_CD34_24H_X1_F1B10:A03",
+ *     "pert_id": "BRD-K49071277",
+ *     "pert_desc": "SECURININE",
+ *     "cell_id": "CD34",
+ *     "pert_time": 24,
+ *     "pert_time_unit": "h",
+ *     "pert_dose": 10,
+ *     "pert_dose_unit": "um"
+ *   },
+ *   "id": "1230884"
+ * }   
  */
 
-server.get('/LINCS/summaries', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    var key = req.params.key || null;
-    var skip = req.params.skip || 0;
-    var limit = req.params.limit || 10;
-    lincs.getSummaries(key, skip, limit, function(err, data) {
+server.get('/LINCS/instances/:distil_id/metadata', function(req, res){
+    var key = req.params.distill_id;
+    lincs.getSummaries(key, 0, 1, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
-        	var result = [];
-        	data.forEach(function(d) {
-        		result.push({id: d.id, summary: d.value})
-        	})
-
-            res.send(200, result);
+            res.send(200, {id: data[0].id, metadata: data[0].value});
         }
     });
 });
 
 /**
- * @api {GET} /LINCS/instances Retrieve instance ids by perturbagen or range
- * @apiName getInstance
+ * @api {POST} /LINCS/instances/query/metadata Request metadata (multi) 
+ * @apiName instancesMetadata
  * @apiGroup LINCS
- * @apiDescription Retrieves instance ids based on range of perturbagen or
- * index.  Note: if perturbagen is specified, cell line must be specified 
- * (because this function queries a view with compound key).  Similarly,
- * if dose and duration are specified, cell line and perturbagen must be also.
- * 
- * @apiParam {String} pert Name of perturbagen.  Optional (but see above).
- * @apiParam {String} cell Name of cell line.  Optional (but see above).
- * @apiParam {Numeric} dose Dose, without units.  Optional (but see above).
- * @apiParam {Numeric} duration Duration, without units.  Optional (but see above).
+ * @apiDescription Fetch metadata for given instance by distil_id.  We use POST
+ * here because keys are long and could quickly exceed GET query string 
+ * limit imposed by many clients.
+ * @apiParam {string[]} keys distilIds of instances
+ * @apiExample {curl} Example usage:
+ *  curl -d '{"keys": ["CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05", \
+ *        "CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05"]}' \
+ *        localhost:8080/LINCS/instances/metadata \
+ *        -H "Content-Type: application/json"  
  *
+ * @apiSuccess {Object} metadata Metadats docs in JSON format
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * Content-Type: application/json
+ * [  
+ * {
+ *    "key": "CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05",
+ *    "metadata": {
+ *      "det_plate": "CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO",
+ *      "is_gold": true,
+ *      "pert_vehicle": "DMSO",
+ *      "pert_type": "trt_cp",
+ *      "distil_id": "CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05",
+ *      "pert_id": "BRD-A64228451",
+ *      "pert_desc": "EI-328",
+ *      "cell_id": "VCAP",
+ *      "pert_time": 6,
+ *      "pert_time_unit": "h",
+ *      "pert_dose": 10,
+ *      "pert_dose_unit": "um"
+ *    },
+ *    "id": "312240"
+ *  } 
+ * ... // truncated
+ * ]
+ */
+server.post('/LINCS/instances/metadata', function(req, res){
+    var keys = req.params.keys;
+    lincs.get(keys, "metadata/metadata", function(err, data) {
+        if(err) {
+            res.send(400, err);
+        } else {
+            res.send(200, data);
+        }
+    });
+});
+
+
+/**
+ * @api {GET} /LINCS/instances retrieve instances by ids or query
+ * @apiName queryInstances
+ * @apiGroup LINCS
+ * @apiDescription submit query as query string (?q={}) in JSON format.
+ * Supported queries To Be Determined.  Note that at the moment, this
+ * endpoint makes use of a multi-key view.  Keys for such views are
+ * hierarchical.  Thus, if you specify pert, you must specify cell_line,
+ * and so on.  Hierarchy is cell_line > pert > dose > duration
+ * @apiParam {string} q The query parameters in JSON format
+ * @apiParam {string} q.ids Array of explicit ids to fetch. If this parameter
+ *                    is provided, the parameters below are ignored.
+ * @apiParam {string} q.limit Number of docs to return, default 1000
+ * @apiParam {string} q.skip Number of docs to skip (for paging), default 0
+ * @apiParam {string} q.cell_line Cell line of interest (optional)
+ * @apiParam {string} q.pert perturbagen (pert_desc) of interest (optional)
+ * @apiParam {string} q.dose dose of interest (unitless, optional)
+ * @apiParam {string} q.duration duration of interest (unitless, optional)
+ * @apiParam {logical} q.gold Whether to limit to is_gold instances, default false
  * @apiSuccess {string} instances Instance ids  in JSON format
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 200 OK
  * {
- * [ { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  
- *    value:                                                                                                                     
- *     { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08',                                                                   
- *       vehicle: 'DMSO' },                                                                                                      
- *    id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08' },                                                                           
- *  { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  
- *    value:                                                                                                                     
- *     { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A16',                                                                   
- *       vehicle: 'DMSO' },                                                                                                      
- *    id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A16' },   
- * 
- *     "...truncated..."
- * ]
  * }
  */
 server.get('/LINCS/instances', function(req, res) {
-    req.params = dequote(req.params);
-    if(req.params.ids) {
-        lincs.get(req.params.ids)
-        .then(function(data) {
-            res.send(data);
-        })
+    var query = JSON.parse(req.params.q)
+    if(query.ids) {
+      console.log(query.ids)
+      lincs.get(query.ids, null, function(err, data) {
+          if(err) {
+              res.send(400, err);
+          } else {
+              res.send(200, data);
+          }
+      });
     } else {
-        var limit = req.params.limit || 1000;
-        var skip = req.params.skip || 0;
-        var cell_line = req.params.cell || null;
-        var pert = req.params.pert || null;
-        var dose = req.params.dose || null;
-        var duration = req.params.duration || null;
-        var gold;
-        if (req.params.gold) {
-            gold = JSON.parse(String(req.params.gold).toLowerCase());
-        } else {
-            gold = null;
-        }
-        lincs.getByPert(cell_line, pert, Number(dose), Number(duration), Number(skip), Number(limit), gold, 
-                        function(err, data) {
-            if(err) {
-                res.send(400, err);
-            } else {
-                res.send(200, data);
-            }
-        });
+      var limit = query.limit || 1000;
+      var skip = query.skip || 0;
+      var cell_line = query.cell || null;
+      var pert = query.pert || null;
+      var dose = query.dose || null;
+      var duration = query.duration || null;
+      var gold;
+      if (query.gold) {
+          gold = JSON.parse(String(query.gold).toLowerCase());
+      } else {
+          gold = null;
+      }
+      lincs.getByPert(cell_line, pert, Number(dose), Number(duration), Number(skip), Number(limit), gold, 
+                      function(err, data) {
+          if(err) {
+              res.send(400, err);
+          } else {
+              res.send(200, data);
+          }
+      });
     }
 });
+
 
 /**
  * @api {POST} /LINCS/data Post ids (either primary or view) and retrieve 
  *                          documents
  * @apiName retrieveData
  * @apiGroup LINCS
- * @apiDescription Retrieves multiple docs by primary or view id
+ * @apiDescription Retrieves multiple docs by primary or view id.  We use POST
+ * here becuase keys are large and quickly exceed GET query string length
+ * limit imposed by many clients
  * 
  * @apiParam {[String]} keys List of primary or view keys
  * @apiParam {String} view Name of view.  If missing will use primary index
@@ -218,50 +276,6 @@ server.post('/LINCS/pert', function(req, res) {
 
                                            
 /**
- * @api {GET} /LINCS/instances/:id Retrieve data document by id 
- * @apiName getdata
- * @apiGroup LINCS
- * @apiDescription Retrieves gene ids, Q2Norm data, and metadata
- *
- * @apiParam {String} id of desired instance.
- *
- * @apiSuccess {string} data Document in JSON format
- * @apiSuccessExample Success-Response: 
- * HTTP/1.1 200 OK
- * {
- * "gene_ids": [
- *     "200814_at",
- *     "222103_at",
- *     "...truncated..."
- *     ],
- * "metadata": {
- *     "bead_batch": "b3",
- *     "bead_revision": "r2",
- *     "bead_set": "dp52,dp53",
- *     "cell_id": "HCC515",
- *     "...truncated..."
- * },
- * "data": [
- *     9.15469932556152,
- *     9.05399990081787,
- *     "...truncated..."
- *     ]
- *  }
- */
-server.get('/LINCS/instances/:id', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    lincs.get(req.params.id, null, function(err, data) {
-        if(err) {
-            res.send(400, err);
-        } else {
-            res.send(200, data[0]);
-        }
-        
-    })
-});
-
-/**
  * @api {POST} /LINCS/instances Save instance data to server 
  * @apiName postInstance
  * @apiGroup LINCS
@@ -281,8 +295,6 @@ server.get('/LINCS/instances/:id', function(req, res){
  * }
  */
 server.post('/LINCS/instances', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
     if(!checkParams(req.params, ['id', 'gene_ids', 'metadata', 'data', 'type'])) {
         res.send(400, "Creating instance document requires POSTing the following " +
                       "parameters: id, gene_ids, data, metadata, type"); 
@@ -373,9 +385,10 @@ server.get('/LINCS/instances/:id/sh_controls', function(req, res) {
   });    
 });
 
+var port = config.port; 
+if(process.env.COUCHLINCS_PORT)
+   port = process.env.COUCHLINCS_PORT;
 
-
-var port = config.port; // should get from config file some day
 
 server.listen(port, function() {
     console.log('\t%s listening at %s', server.name, server.url);
