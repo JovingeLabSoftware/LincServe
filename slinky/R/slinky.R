@@ -107,7 +107,7 @@ Slinky$methods(calc = function(method = NULL, cores = NULL, cluster = NULL) {
            
          },
          "zspc" = {
-           subber <- filter(metadata, pert_desc != "-666")
+           subber <- filter(metadata, pert_desc != "-666" & pert_type %in% c("trt_cp", "trt_poscon", "trt_lig", "trt_sh", "trt_oe", "trt_oe.mut"))
            keys <- unique(subber$key)
            .self$zspc(keys, meta = subber) 
          }
