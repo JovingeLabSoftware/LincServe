@@ -402,7 +402,7 @@
     "examples": [
       {
         "title": "Example usage:",
-        "content": "curl -G \"http://localhost:8080/LINCS/instances\" --data-urlencode \"ids=[1,2,3]\" --data-urlencode f='[\"metadata.pert_type\"]'\ncurl -G -v \"http://localhost:8082/LINCS/instances\" --data-urlencode q='{\"pert_desc\": \"celecoxib\"}' --data-urlencode f='[\"metadata.pert_type\"]' --data l=10 --data s=10",
+        "content": "curl -G \"http://localhost:8080/LINCS/instances\" --data-urlencode \"ids=[1,2,3]\" --data-urlencode f='[\"metadata.pert_type\"]'\ncurl -G \"http://localhost:8082/LINCS/instances\" --data-urlencode q='{\"pert_desc\": \"celecoxib\"}' \\\n   --data-urlencode f='[\"metadata.pert_type\"]' --data l=10 --data s=10",
         "type": "curl"
       }
     ],
