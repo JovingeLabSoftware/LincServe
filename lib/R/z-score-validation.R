@@ -8,7 +8,6 @@ data("metadata")
 
 dd <- '/mnt/lincs/LINCStest/'
 couch_ip <- readRDS(paste0(dd, 'couch_ip.rds'))
-qnorm <- readRDS(paste0(dd, "q2norm_test_set.rds"))
 slo <- Slinky$new(ip = couch_ip, port = '8080')
 
 
