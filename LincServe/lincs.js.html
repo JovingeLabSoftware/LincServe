@@ -123,6 +123,7 @@ LINCS.prototype.get = function(ids, fields, cb) {
 LINCS.prototype.instanceQuery = function(query, fields, skip, limit, cb) {
 	var deferred = Q.defer();
 	var q = this._prepare(fields, query, skip, limit);
+	console.log(q);
   this._execute(q, deferred);
   deferred.promise.nodeify(cb);
   return deferred.promise;
@@ -326,7 +327,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Mon Dec 28 2015 22:17:43 GMT+0000 (UTC)
+    Documentation generated at Tue Dec 29 2015 16:17:03 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
