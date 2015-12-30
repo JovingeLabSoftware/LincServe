@@ -1,7 +1,7 @@
 var Q = require('q');
 var config = require('../config');
 var restify = require('restify');
-var lincs = require('lincs');
+var lincs = require('couchlincs');
 
 var server = restify.createServer({
   name: 'LINCS',
@@ -12,6 +12,11 @@ server.use(restify.bodyParser());
 server.use(restify.fullResponse());
 server.use(restify.CORS());
 server.use(restify.queryParser());
+restify.defaultResponseHeaders = function(data) {
+    this.header("Access-Control-Allow-Origin", "*");
+    this.header("Access-Control-Allow-Headers", "X-Requested-With");
+    this.contentType = 'json';
+};
 
 
 /**
@@ -19,6 +24,8 @@ server.use(restify.queryParser());
  * @apiName Root
  * @apiGroup Root
  *
+ * @apiExample {curl} Example usage:
+ *           curl http://localhost:8080/
  * @apiSuccess {string} response
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 200 OK
@@ -37,138 +44,156 @@ server.get('/', function(req, res){
  * @apiSuccess {string} response  Some useful information.
  */
 server.get('/LINCS', function(req, res){
-    res.send(200, "Current endpoints: /LINCS/nidrange, /LINCS/summaries, /LINCS/summaries/nid.  See http://jovingelabsoftware.github.io/CouchLincs/api for details");
+    res.send(200, "Current endpoints: /LINCS/instances.  See http://jovingelabsoftware.github.io/CouchLincs/api for details");
 });
 
-
-
-
 /**
- * @api {GET} /LINCS/summaries Request summary docs by document index (1..N) 
- * @apiName summaries
+ * @api {GET} /LINCS/instances/:id Request instance by id 
+ * @apiName instanceById
  * @apiGroup LINCS
- * @apiDescription Remember that the numerical ids are used for 
- *  rapid paging/chunking.  They are NOT necessarily uniqe, NOT 
- *  contiguous, and NOT in any sort of order.  But they are FAST.
+ * @apiDescription Fetch data for a given instance by id
+ * @apiParam {String} id Id of instance
+ * @apiExample {curl} Example usage:
+ *           curl localhost:8080/LINCS/instances/2
  *
- * @apiParam {Number} skip Starting numerical index.
- * @apiParam {Number} limit Ending numerical index.
- *
- * @apiSuccess {string} summaries Summary docs in JSON format
+ * @apiSuccess {Object} data data docs in JSON format
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 200 OK
+ * Content-Type: application/json
  * {
- * [ { id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05',
- *  summary: { pert_desc: 'EI-328', pert_type: 'trt_cp', cell_id: 'VCAP' } },
- *   { id: 'KDC003_VCAP_120H_X3_B5_DUO52HI53LO:M08',
- *  summary: { pert_desc: 'SOX5', pert_type: 'trt_sh', cell_id: 'VCAP' } } ]
- * }    
+ *   "data": { ... },
+ *   "metadata": { ... },
+ *   "timestamp": "2015-12-18 03:52:52",
+ *   "id": "1230884"
+ * }   
  */
-
-server.get('/LINCS/summaries', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    var key = req.params.key || null;
-    var skip = req.params.skip || 0;
-    var limit = req.params.limit || 10;
-    lincs.getSummaries(key, skip, limit, function(err, data) {
+server.get('/LINCS/instances/:id', function(req, res){
+    var key = req.params.id;
+    lincs.get(key, null, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
-        	var result = [];
-        	data.forEach(function(d) {
-        		result.push({id: d.id, summary: d.value})
-        	})
-
-            res.send(200, result);
+            res.send(200, data[0]);
         }
     });
 });
 
 /**
- * @api {GET} /LINCS/instances Retrieve instance ids by perturbagen or range
- * @apiName getInstance
+ * @api {GET} /LINCS/instances Query instances 
+ * @apiName instanceQuery
  * @apiGroup LINCS
- * @apiDescription Retrieves instance ids based on range of perturbagen or
- * index.  Note: if perturbagen is specified, cell line must be specified 
- * (because this function queries a view with compound key).  Similarly,
- * if dose and duration are specified, cell line and perturbagen must be also.
- * 
- * @apiParam {String} pert Name of perturbagen.  Optional (but see above).
- * @apiParam {String} cell Name of cell line.  Optional (but see above).
- * @apiParam {Numeric} dose Dose, without units.  Optional (but see above).
- * @apiParam {Numeric} duration Duration, without units.  Optional (but see above).
- *
- * @apiSuccess {string} instances Instance ids  in JSON format
+ * @apiDescription Fetch data for instances matching query.  Either ids or q 
+ *  should be specified
+ * @apiParam {String[]} [ids] Optional explicit list of primary ids
+ * @apiParam {String[]} [q] Optional query in form of field: value pairs, as in:
+ *                      q={"pert_desc": "celecoxib", "pert_type": "trt_cp"}.  
+ *                      Note that fields are assumed to be in metadata slot.
+ *                      Querying outside the metadata is not possible.
+ * @apiParam {String[]} [f] Optional list of fields to return, e.g. 
+ *                         [metadata.pert_desc, gene_ids]
+ *                      Note that parent field must be explicitly declared 
+ *                      (e.g. metadata), so that top level slots (data, gene_ids)
+ *                      can be requested and returned.
+ * @apiParam {Number} s Number of records to skip (for paging)
+ * @apiParam {Number} l Number of records to return (limit)
+ * @apiExample {curl} Example usage:
+ *           curl -G "http://localhost:8080/LINCS/instances" --data-urlencode "ids=[1,2,3]" \
+ *              --data-urlencode f='["metadata.pert_type"]'
+ *           curl -G "http://localhost:8082/LINCS/instances" --data-urlencode q='{"pert_desc": "celecoxib"}' \
+ *              --data-urlencode f='["metadata.pert_type"]' --data l=10 --data s=10
+ * @apiSuccess {Object} data data docs in JSON format
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 200 OK
+ * Content-Type: application/json
  * {
- * [ { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  
- *    value:                                                                                                                     
- *     { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08',                                                                   
- *       vehicle: 'DMSO' },                                                                                                      
- *    id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A08' },                                                                           
- *  { key: [ 'A375', 'BRD-K73037408', 2.5, 6 ],                                                                                  
- *    value:                                                                                                                     
- *     { distil_id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A16',                                                                   
- *       vehicle: 'DMSO' },                                                                                                      
- *    id: 'PCLB001_A375_6H_X1_F2B6_DUO52HI53LO:A16' },   
- * 
- *     "...truncated..."
- * ]
- * }
+ *   [
+ *     {
+ *       "id":"1",
+ *       "pert_type":"trt_cp"
+ *       },
+ *       {
+ *          "id":"2",
+ *          "pert_type":"trt_cp"
+ *           
+ *       },
+ *       {
+ *         "id":"3",
+ *         "pert_type":"trt_cp"
+ *       }
+ *     ]
+ * }   
  */
-server.get('/LINCS/instances', function(req, res) {
-    req.params = dequote(req.params);
-    if(req.params.ids) {
-        lincs.get(req.params.ids)
-        .then(function(data) {
-            res.send(data);
-        })
-    } else {
-        var limit = req.params.limit || 1000;
-        var skip = req.params.skip || 0;
-        var cell_line = req.params.cell || null;
-        var pert = req.params.pert || null;
-        var dose = req.params.dose || null;
-        var duration = req.params.duration || null;
-        var gold;
-        if (req.params.gold) {
-            gold = JSON.parse(String(req.params.gold).toLowerCase());
-        } else {
-            gold = null;
-        }
-        lincs.getByPert(cell_line, pert, Number(dose), Number(duration), Number(skip), Number(limit), gold, 
-                        function(err, data) {
+server.get('/LINCS/instances', function(req, res){
+    var query = req.params;
+    if(query.ids) {
+        var f =  has(query, f) ? JSON.parse(query.f) : null;
+        lincs.get(JSON.parse(query.ids), f, function(err, data) {
             if(err) {
                 res.send(400, err);
             } else {
                 res.send(200, data);
             }
         });
+    } else if(query.q) {
+        var f = query.f ? JSON.parse(query.f) : null;
+        var s = query.s ? JSON.parse(query.s) : null;
+        var l = query.l ? JSON.parse(query.l) : null;
+        lincs.instanceQuery(JSON.parse(query.q), f, s, l, function(err, data) {
+            if(err) {
+                res.send(400, err);
+            } else {
+                res.send(200, data);
+            }
+        });
+    } else {
+        res.send(400, "ERROR: You must provide either ids (array of primary ids)" +
+                        " or q (query in form of field value pairs as JSON)");
     }
 });
 
+var has = function(o, f) {
+    if(typeof(o) == "string") {
+      return(typeof(JSON.parse(o).f) != "undefined")
+    } else {
+      return(typeof(o.f != "undefined"))
+    }
+}
+
 /**
- * @api {POST} /LINCS/data Post ids (either primary or view) and retrieve 
- *                          documents
- * @apiName retrieveData
+ * @api {POST} /LINCS/instances/distil_id data by distil_id (multi) 
+ * @apiName distilIdsData
  * @apiGroup LINCS
- * @apiDescription Retrieves multiple docs by primary or view id
- * 
- * @apiParam {[String]} keys List of primary or view keys
- * @apiParam {String} view Name of view.  If missing will use primary index
+ * @apiDescription Fetch metadata for given instance by distil_id.  We use POST
+ * here because keys are long and could quickly exceed GET query string limits. 
+ * The same data can be achieved with the /LINCS/instances GET endpoint using the 'q'
+ * parameter, but that may fail with large numbers of distil_ids due to query 
+ * string length limits imposed by many clients.
+ * @apiParam {string[]} ids distilIds of instances
+ * @apiParam {string[]} fields fields to return (defaults to all data)
+ * @apiExample {curl} Example usage:
+ *  curl -d '{"ids": ["CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05", \
+ *        "CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05"]}' \
+ *        localhost:8080/LINCS/instances/distil_id \
+ *        -H "Content-Type: application/json"  
  *
- * @apiSuccess {string} Id of created object
+ * @apiSuccess {Object} data docs in JSON format
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 200 OK
+ * Content-Type: application/json
+ * [  
  * {
- *  ...
- * }
+ *    "data": { ... }
+ *    "gene_ids": { ... }
+ *    "metadata": { ... },
+ *    "id": "312240"
+ *  } 
+ * ... // truncated
+ * ]
  */
-server.post('/LINCS/data', function(req, res) {
-    var view = req.params.view || null;
-    lincs.get(req.params.keys, view, function(err, data) {
+server.post('/LINCS/instances/distil_id', function(req, res){
+    var ids = req.params.ids;
+    var fields = req.params.fields || "*";
+    lincs.getByDistilID(ids, fields, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
@@ -176,6 +201,8 @@ server.post('/LINCS/data', function(req, res) {
         }
     });
 });
+
+
 
 /**
  * @api {POST} /LINCS/pert Create a perturbation data document
@@ -185,15 +212,15 @@ server.post('/LINCS/data', function(req, res) {
  *                 calculation method
  * 
  * @apiParam {String} perturbagen name of perturbagen
- * @apiParam {numeric} dose dose (unitless)
- * @apiParam {numeric} duration duration (unitless)
+ * @apiParam {Numeric} dose dose (unitless)
+ * @apiParam {Numeric} duration duration (unitless)
  * @apiParam {String} cell cell line used
  * @apiParam {String} method calculation method used, e.g. "zsvc_plate"
- * @apiParam {boolean} gold is this a gold signature score?
- * @apiParam {[String]} gene_ids from lincs
- * @apiParam {[Numeric]} data the scores (one per gene)
+ * @apiParam {Boolean} gold is this a gold signature score?
+ * @apiParam {String[]} gene_ids from lincs
+ * @apiParam {Numeric[]} data the scores (one per gene)
  *
- * @apiSuccess {string} Id of created object
+ * @apiSuccess {String} Id of created object
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 201 Created
  * {
@@ -218,50 +245,6 @@ server.post('/LINCS/pert', function(req, res) {
 
                                            
 /**
- * @api {GET} /LINCS/instances/:id Retrieve data document by id 
- * @apiName getdata
- * @apiGroup LINCS
- * @apiDescription Retrieves gene ids, Q2Norm data, and metadata
- *
- * @apiParam {String} id of desired instance.
- *
- * @apiSuccess {string} data Document in JSON format
- * @apiSuccessExample Success-Response: 
- * HTTP/1.1 200 OK
- * {
- * "gene_ids": [
- *     "200814_at",
- *     "222103_at",
- *     "...truncated..."
- *     ],
- * "metadata": {
- *     "bead_batch": "b3",
- *     "bead_revision": "r2",
- *     "bead_set": "dp52,dp53",
- *     "cell_id": "HCC515",
- *     "...truncated..."
- * },
- * "data": [
- *     9.15469932556152,
- *     9.05399990081787,
- *     "...truncated..."
- *     ]
- *  }
- */
-server.get('/LINCS/instances/:id', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    lincs.get(req.params.id, null, function(err, data) {
-        if(err) {
-            res.send(400, err);
-        } else {
-            res.send(200, data[0]);
-        }
-        
-    })
-});
-
-/**
  * @api {POST} /LINCS/instances Save instance data to server 
  * @apiName postInstance
  * @apiGroup LINCS
@@ -271,18 +254,16 @@ server.get('/LINCS/instances/:id', function(req, res){
  * @apiParam {String} id desired id (key) of document
  * @apiParam {String} metadata JSON from lincs
  * @apiParam {String} type  Type of data, e.g. "q2norm"
- * @apiParam {[String]} gene_ids from lincs
- * @apiParam {[Numeric]} data the expression data
+ * @apiParam {String[]} gene_ids from lincs
+ * @apiParam {Numeric[]} data the expression data
  *
- * @apiSuccess {string} response response
+ * @apiSuccess {String} response response
  * @apiSuccessExample Success-Response: 
  * HTTP/1.1 200 OK
  * {
  * }
  */
 server.post('/LINCS/instances', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
     if(!checkParams(req.params, ['id', 'gene_ids', 'metadata', 'data', 'type'])) {
         res.send(400, "Creating instance document requires POSTing the following " +
                       "parameters: id, gene_ids, data, metadata, type"); 
@@ -301,84 +282,6 @@ server.post('/LINCS/instances', function(req, res){
             }
         });
     }
-});
-
-/**
- * @api {GET} /LINCS/instances/:id/controls Retrieve control data 
- * @apiName getControls
- * @apiGroup LINCS
- * @apiDescription Retrieves the full data document for each instance on the 
- * same plate as :id whose perturbagen is the appropriate control for that 
- * instance (including time of exposure and cell line). 
- *
- * @apiParam {String} id of instance for which controls are desired.
- *
- * @apiSuccess {string} data Document in JSON format
- * @apiSuccessExample Success-Response (note array): 
- * HTTP/1.1 200 OK
- * {
- * ["gene_ids": [
- *     "200814_at",
- *     "222103_at",
- *     "...truncated..."
- *     ],
- * "metadata": {
- *     "bead_batch": "b3",
- *     "bead_revision": "r2",
- *     "bead_set": "dp52,dp53",
- *     "cell_id": "HCC515",
- *     "...truncated..."
- * },
- * "data": [
- *     9.15469932556152,
- *     9.05399990081787,
- *     "...truncated..."
- *     ]
- *  },
- *  "...truncated..."
- * ]
- * }
- */
-server.get('/LINCS/instances/:id/controls', function(req, res){
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
-    lincs.instSamePlateVehicles(req.params.id, function(err, data) {
-        if(err) {
-            res.send(400, err);
-        } else {
-            res.send(200, data);
-        }
-    });
-});
-
-
-/**
- * @api {GET} /LINCS/sh_controls Retrieve control data for shRNA
- * @apiName getShControls
- * @apiGroup LINCS
- * @apiDescription Retrieves the appropriate shRNA controls 
- * 
- * 
-*/
-
-server.get('/LINCS/instances/:id/sh_controls', function(req, res) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
-  lincs.instShSamePlateVehicles(req.params.id, function(err, data) {
-      if(err) {
-          res.send(400, err);
-      } else {
-          res.send(200, data);
-      }
-  });    
-});
-
-
-
-var port = config.port; // should get from config file some day
-
-server.listen(port, function() {
-    console.log('\t%s listening at %s', server.name, server.url);
 });
 
 var dequote = function(x) {
@@ -401,3 +304,13 @@ var checkParams = function(obj, vars) {
     });
     return(ok);
 };
+
+
+var port = config.port; 
+if(process.env.COUCHLINCS_PORT)
+   port = process.env.COUCHLINCS_PORT;
+
+
+server.listen(port, function() {
+    console.log('\t%s listening at %s', server.name, server.url);
+});

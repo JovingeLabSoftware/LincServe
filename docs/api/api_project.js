@@ -1,6 +1,6 @@
 define({
   "title": "LINCS REST API Browser",
-  "url": "https://localhost",
+  "url": "http://54.152.59.84:8080",
   "name": "CouchLincs",
   "version": "1.0.0",
   "description": "A high performance (hopefully) LINCS data server including Node.js server, couchbase backend, and R package for ETL",
@@ -8,7 +8,7 @@ define({
   "apidoc": "0.2.0",
   "generator": {
     "name": "apidoc",
-    "time": "2015-12-08T22:33:39.583Z",
+    "time": "2015-12-29T16:18:03.926Z",
     "url": "http://apidocjs.com",
     "version": "0.13.1"
   }
