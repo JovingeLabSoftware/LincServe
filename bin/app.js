@@ -155,7 +155,7 @@ var has = function(o, f) {
     if(typeof(o) == "string") {
       return(typeof(JSON.parse(o).f) != "undefined")
     } else {
-      return(typeof(o.f != "undefined"))
+      return(typeof(o.f) != "undefined")
     }
 }
 
@@ -193,7 +193,7 @@ var has = function(o, f) {
 server.post('/LINCS/instances/distil_id', function(req, res){
     var ids = req.params.ids;
     var fields = req.params.fields || "*";
-    lincs.getByDistilID(ids, fields, function(err, data) {
+    lincs.instanceQuery({"distil_id": ids}, fields, null, null, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
@@ -201,6 +201,8 @@ server.post('/LINCS/instances/distil_id', function(req, res){
         }
     });
 });
+
+
 
 
 

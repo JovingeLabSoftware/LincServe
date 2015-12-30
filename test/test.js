@@ -56,7 +56,6 @@ describe('LINCS methods', function() {
     var url = encodeURI(`/LINCS/instances?${qs}`)
     client.get(url, function(err, req, res, data) {
       if(err) throw(err);
-      console.log(qs)
       checkResponse(res);
       assert.equal(data[0].pert_id,  "BRD-A64228451");
       done();
@@ -110,46 +109,53 @@ describe('LINCS methods', function() {
   });
   
   it('retrieves control data for given instance', function(done) {
-    client.get('/LINCS/instances/12/controls', function(err, req, res, data) {
-      if (err) {
-          throw err;
-      } else {
-        checkResponse(res);
-        assert.ok(data[0].value.metadata);
-        assert.equal(data.length, 15);
-        done();
-      }
+    client.get('/LINCS/instances/12', function(err, req, res, data) {
+      var qs = queryString({det_plate: data.metadata.det_plate,
+                            pert_desc: data.metadata.pert_vehicle,
+                            pert_time: data.metadata.pert_time},  // query
+                            ['metadata.pert_id'], // fields
+                            null,                    // skip
+                            null);                   // limit
+      var url = encodeURI(`/LINCS/instances?${qs}`)
+      client.get(url, function(err, req, res, data) {
+        if (err) {
+            throw err;
+        } else {
+          checkResponse(res);
+          assert.ok(data[0].pert_id);
+          assert.equal(data.length, 15);
+          done();
+        }
+      });
     });
   });
 
-  it.skip('retrieves all instances with the specified perturbation', function(done) {
+  it('retrieves all instances with the specified perturbation', function(done) {
     client.get('/LINCS/instances?cell="SNUC4"&pert="Rottlerin"&dose=9.68&duration=6', function(err, req, res, data) {
-      if (err) {
-          throw err;
-      } else {
-            checkResponse(res);
-            assert.ok(data[0]);
-            assert.equal(data.length, 2);
-            done();
-      }
+      var qs = queryString({cell_id: "SNUC4",
+                            pert_desc: "Rottlerin",
+                            pert_time: 6,
+                            pert_dose: 9.68
+                           },  // query
+                            ['metadata.pert_id'], // fields
+                            null,                    // skip
+                            null);                   // limit
+      var url = encodeURI(`/LINCS/instances?${qs}`)
+      client.get(url, function(err, req, res, data) {
+        if (err) {
+            throw err;
+        } else {
+          checkResponse(res);
+          assert.ok(data[0].pert_id);
+          assert.equal(data.length, 2);
+          done();
+        }
+      });
     });
   });
   
-  it.skip('retrieves all instances with the specified perturbation but any dose or duration', function(done) {
-    client.get('/LINCS/instances?cell="SNUC4"&pert="Rottlerin"', function(err, req, res, data) {
-      if (err) {
-          throw err;
-      } else {
-            checkResponse(res);
-            assert.ok(data[0]);
-            assert.equal(data.length, 2);
-            done();
-      }
-    });
-  });
-
-  it.skip('inserts instance document with numerical ID', function(done) {
-    client.post('/LINCS/instances', {id: 1, metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
+  it('inserts instance document with numerical ID', function(done) {
+    client.post('/LINCS/instances', {id: 999999999, metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1],
                                  type: "test_instance"}, 
@@ -164,7 +170,7 @@ describe('LINCS methods', function() {
     });
   });
 
-  it.skip('inserts instance document with string ID', function(done) {
+  it('inserts instance document with string ID', function(done) {
     client.post('/LINCS/instances', {id: 'one', metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1],
@@ -181,7 +187,7 @@ describe('LINCS methods', function() {
     });
   });
 
-  it.skip('returns an informative error if required instance fields not provided.', function(done) {
+  it('returns an informative error if required instance fields not provided.', function(done) {
     client.post('/LINCS/instances', {id: 1, metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1]}, // no type!
@@ -192,7 +198,7 @@ describe('LINCS methods', function() {
   });
 
 
-  it.skip('inserts zscore document', function(done) {
+  it('inserts zscore document', function(done) {
     client.post('/LINCS/pert', {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2,  
                                       gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                       data: [12, 3, 4.1],
@@ -210,7 +216,7 @@ describe('LINCS methods', function() {
     });
   });
 
-  it.skip('returns an informative error if required pert fields not provided.', function(done) {
+  it('returns an informative error if required pert fields not provided.', function(done) {
     client.post('/LINCS/pert', {cell: "A375", perturbagen: "BRD-K73037408", dose: 2,  
                                       gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                       data: [12, 3, 4.1],
@@ -223,19 +229,7 @@ describe('LINCS methods', function() {
     });
   });
   
-  it.skip('retrieves the appropriate shRNA controls.', function(done) {
 
-    client.get('/LINCS/instances/5/sh_controls', function(err, req, res, data) {
-      if (err) {
-          throw err;
-      } else {
-            assert.ok(data[0]);
-            done();
-      }
-    });
-    
-  });
-  
   
 });
 
