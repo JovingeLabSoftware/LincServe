@@ -5,11 +5,25 @@ var Q = require('q');
 var _range;
 
 process.env.LINCS_DEVEL = 'true';
+var port = process.env.COUCHLINCS_PORT || 8084;
 
 var client = restify.createJsonClient({
     version: '*',
-    url: 'http://127.0.0.1:8086'
+    url: 'http://127.0.0.1:' + port
 });
+
+//convenience function for formatting API query strings
+var queryString = function(q, f, s, l) {
+  q = q || null; f = f || null; s 
+  = s || null; l = l || null;
+  var qs = '';
+  qs += (q == null) ? "" : `&q=${JSON.stringify(q)}`;
+  qs += (f == null) ? "" : `&f=${JSON.stringify(f)}`;
+  qs += (l == null) ? "" : `&l=${l}`;
+  qs += (s == null) ? "" : `&s=${s}`;
+  return(qs.slice(1)); // drop leading &.  reduces logic above.
+};
+
 
 // start up the service before we run any tests!
 
@@ -33,18 +47,24 @@ describe('Server up', function() {
 });
 
 describe('LINCS methods', function() {
-  it('retrieves metadata for one instance', function(done) {
-    this.timeout(5000)
-    client.get('/LINCS/instances/CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05/metadata', function(err, req, res, data) {
+  it('retrieves data for one instance by distil_id', function(done) {
+    this.timeout(5000);
+    var qs = queryString({distil_id: 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05'},  // query
+                          ['metadata.pert_id'], // fields
+                          0,                    // skip
+                          1);                   // limit
+    var url = encodeURI(`/LINCS/instances?${qs}`)
+    client.get(url, function(err, req, res, data) {
       if(err) throw(err);
+      console.log(qs)
       checkResponse(res);
-      assert.equal(data.metadata.pert_id,  "BRD-K49071277");
+      assert.equal(data[0].pert_id,  "BRD-A64228451");
       done();
     });
   });
 
   it('retrieves several instances by ids', function(done) {
-    client.get('/LINCS/instances?q={"ids":[5,6,7]}', function(err, req, res, data) {
+    client.get(encodeURI('/LINCS/instances?ids=[5,6,7]'), function(err, req, res, data) {
       if(err) throw(err);
       checkResponse(res);
       assert.equal(data.length, 3);
@@ -52,27 +72,32 @@ describe('LINCS methods', function() {
     });
   });
 
-  it('retrieves metadata for multiple instances by pert_id', function(done) {
-    keys = ["HSF045_HEK293T_48H_X1_B12:H21", "BRAF001_HEK293T_24H_X2_B10:E24"];
-    client.post('/LINCS/instances/metadata', keys, function(err, req, res, data) {
+  it('retrieves specified fields of several instances by ids', function(done) {
+    var url = encodeURI(`/LINCS/instances?ids=[5,6,7]&f=["metadata.pert_desc", "metadata.pert_type"]`);
+    client.get(url, function(err, req, res, data) {
       if(err) throw(err);
       checkResponse(res);
+      assert.equal(data.length, 3);
+      assert.ok(data[0].pert_type);
+      done();
+    });
+  });
+
+  it('retrieves data for multiple instances by distil_id', function(done) {
+    var keys = ["HSF045_HEK293T_48H_X1_B12:H21", "BRAF001_HEK293T_24H_X2_B10:E24"];
+    client.post('/LINCS/instances/distil_id', 
+                  {ids: keys, fields:["metadata.pert_desc", 
+                  "metadata.pert_id"]}, 
+           function(err, req, res, data) {
+      if(err) throw(err);
+      checkResponse(data);
       assert.equal(data.length, 2);
       done();
     });
   });
 
-  it.skip('retrieves range of document summaries by key fragment', function(done) {
-    client.get('/LINCS/summaries?key=AML001_CD34_24H_X1', function(err, req, res, data) {
-      if(err) throw(err);
-      checkResponse(res);
-      assert.equal(data.length, 10);
-      done();
-    });
-  });
-
   //lincs.instSamePlateVehicles("RAD001_MCF7_24H_X3_F1B5_DUO52HI53LO:N02")
-  it.skip('retrieves an instance', function(done) {
+  it('retrieves an instance', function(done) {
     client.get('/LINCS/instances/12', function(err, req, res, data) {
       if (err) {
           throw err;
@@ -84,7 +109,7 @@ describe('LINCS methods', function() {
     });
   });
   
-  it.skip('retrieves control data for given instance', function(done) {
+  it('retrieves control data for given instance', function(done) {
     client.get('/LINCS/instances/12/controls', function(err, req, res, data) {
       if (err) {
           throw err;
@@ -97,7 +122,7 @@ describe('LINCS methods', function() {
     });
   });
 
-  it.skip('retrieves all instances wit.skiph the specified perturbation', function(done) {
+  it.skip('retrieves all instances with the specified perturbation', function(done) {
     client.get('/LINCS/instances?cell="SNUC4"&pert="Rottlerin"&dose=9.68&duration=6', function(err, req, res, data) {
       if (err) {
           throw err;
@@ -110,7 +135,7 @@ describe('LINCS methods', function() {
     });
   });
   
-  it.skip('retrieves all instances wit.skiph the specified perturbation but any dose or duration', function(done) {
+  it.skip('retrieves all instances with the specified perturbation but any dose or duration', function(done) {
     client.get('/LINCS/instances?cell="SNUC4"&pert="Rottlerin"', function(err, req, res, data) {
       if (err) {
           throw err;
@@ -123,7 +148,7 @@ describe('LINCS methods', function() {
     });
   });
 
-  it.skip('inserts instance document wit.skiph numerical ID', function(done) {
+  it.skip('inserts instance document with numerical ID', function(done) {
     client.post('/LINCS/instances', {id: 1, metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1],
@@ -139,7 +164,7 @@ describe('LINCS methods', function() {
     });
   });
 
-  it.skip('inserts instance document wit.skiph string ID', function(done) {
+  it.skip('inserts instance document with string ID', function(done) {
     client.post('/LINCS/instances', {id: 'one', metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1],
