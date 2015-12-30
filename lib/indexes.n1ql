@@ -1,0 +1,35 @@
+DROP INDEX LINCS.cell_pert_lower
+CREATE INDEX `cell_pert_lower` ON `LINCS`((`metadata`.`cell_id`),lower((`metadata`.`pert_desc`)),(`metadata`.`pert_dose`),(`metadata`.`pert_time`),(`metadata`.`is_gold`)) USING GSI 
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
+
+DROP INDEX LINCS.pert_id
+CREATE INDEX `pert_id` ON `LINCS`((`metadata`.`pert_id`),(`metadata`.`pert_dose`),(`metadata`.`pert_time`),(`metadata`.`is_gold`)) USING GSI
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
+
+DROP INDEX LINCS.pert_type
+CREATE INDEX `pert_type` ON `LINCS`((`metadata`.`pert_type`)) USING GSI
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
+
+DROP INDEX LINCS.id_ix
+CREATE INDEX `id_ix` ON `LINCS`((meta().`id`)) USING GSI
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
+
+DROP INDEX LINCS.pert_desc
+CREATE INDEX `pert_desc` ON `LINCS`((`metadata`.`pert_desc`),(`metadata`.`pert_dose`),(`metadata`.`pert_time`),(`metadata`.`is_gold`)) USING GSI
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
+
+DROP INDEX LINCS.det_plates
+CREATE INDEX `det_plates` ON `LINCS`((`metadata`.`det_plate`)) USING GSI
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
+
+DROP INDEX LINCS.doctype
+CREATE INDEX `doctype` ON `LINCS`(`doctype`) USING GSI
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
+
+DROP INDEX LINCS.distil_id
+CREATE INDEX `distil_id` ON `LINCS`((`metadata`.`distil_id`)) USING GSI
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
+    
+DROP INDEX LINCS.pert_desc_lower
+CREATE INDEX `pert_desc_lower` ON `LINCS`(lower((`metadata`.`pert_desc`)),(`metadata`.`pert_dose`),(`metadata`.`pert_time`),(`metadata`.`is_gold`)) USING GSI
+WITH {"nodes":"ec2-52-32-68-143.us-west-2.compute.amazonaws.com:8091"}
