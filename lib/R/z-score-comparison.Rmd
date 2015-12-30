@@ -1,0 +1,174 @@
+---
+title: "Z-Score Comparison"
+author: "JLab Skunkworks"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+
+```{r config, include=FALSE}
+library(slinky)
+library(ggplot2)
+library(borgmisc)
+
+data("metadata")
+
+dd <- '/mnt/lincs/LINCStest/'
+couch_ip <- readRDS(paste0(dd, 'couch_ip.rds'))
+slo <- Slinky$new(ip = couch_ip, port = '8080')
+nq_url <- u <- sprintf("http://%s:8093/query/service", couch_ip)
+
+```
+
+
+```{r}
+
+# we have been in the habit of averaging all replicate scores 
+
+# their z-scores vs plate controls
+# zpc <- readRDS(paste0(dd, "zspc_test_set.rds"))
+
+# # compute an average z-score for our grouping
+# avg_z <- do.call(cbind, lapply(split(meta, meta$key, drop = TRUE), function(x) {
+#   apply(zpc[,x$distil_id, drop = FALSE], MARGIN = 1, mean)
+# }))
+
+
+avg_z <- readRDS(paste0(dd, "zspc-avg-z-scores.rds"))
+rownames(avg_z) <- trim(rownames(avg_z))
+
+
+# only need to keep the l1000 genes for this...
+q <- 'select gene_ids from LINCS where Meta().id = "1";'
+res <- POST(nq_url, body = list(statement = q), encode = "json", verbose = TRUE)
+kk <- jsonlite::fromJSON(content(res, 'text'))
+l1000 <- unlist(kk$results$gene_ids)
+avg_z <- avg_z[which(rownames(avg_z) %in% l1000), ]
+
+# metadata grouping key -- this is the level we have been averaging scores at
+metadata$key <- paste(metadata$pert_desc, metadata$cell_id, metadata$pert_dose, 
+                      metadata$pert_time, sep = "_")
+
+# strip the method i added to the colnames when i computed these
+colnames(avg_z) <- gsub("ZSPC_L1000_", "", colnames(avg_z))
+
+meta_ov <- metadata[metadata$key %in% colnames(avg_z), ]
+
+# now actually re-name these b/c i made the "key" wrong the first time...
+meta_new <- meta_ov
+meta_new <- meta_new[,c("pert_desc", "cell_id", "pert_time", "pert_dose", "key")]
+meta_new <- meta_new[!duplicated(meta_new),]
+mm <- match(colnames(avg_z), meta_new$key)
+meta_new <- meta_new[mm, ]
+all(meta_new$key == colnames(avg_z))
+meta_new$key_fix <- paste(meta_new$cell_id, meta_new$pert_desc, meta_new$pert_dose,
+                          meta_new$pert_time, sep = "_")
+
+colnames(avg_z) <- meta_new$key_fix
+
+
+
+'HEPG2_Y27632_4_6' %in% colnames(avg_z)
+'FIBRNPC_Sulindac_10_6' %in% colnames(avg_z)
+which(colnames(avg_z) == 'FIBRNPC_Sulindac_10_6') 
+
+
+qt <- 'select *, Meta().id from LINCS where Meta().id = "%s";'
+
+check_results <- function(httr_res) {
+  parsed <- jsonlite::fromJSON(content(httr_res, 'text'))
+  if (length(parsed$results)) return(TRUE)
+  else return(FALSE)
+}
+
+zp_count <- 1
+zv_count <- 0 # there are none of these....
+vals <- vector(mode = 'list', length = ncol(avg_z))
+for (i in 1:ncol(avg_z)) {
+
+  key <- colnames(avg_z)[i]
+  zp_key <- paste0("ZSPC_L1000_", key)
+  # zv_key <- paste0("ZSVC_L1000_", key)
+  
+  zp_q <- sprintf(qt, zp_key)
+  # zv_q <- sprintf(qt, zv_key)
+
+  zp_res <- POST(nq_url, body = list(statement = zp_q), encode = "json", verbose = TRUE)
+  # zv_res <- POST(nq_url, body = list(statement = zv_q), encode = "json", verbose = TRUE)
+
+  res <- jsonlite::fromJSON(content(zp_res, 'text'))
+  if (length(res$results)) {
+    mat <- matrix(res$results$LINCS$data[[1]], ncol = 1)
+    rownames(mat) <- res$results$LINCS$gene_ids[[1]]
+    colnames(mat) <- res$results$id
+    vals[[i]] <- mat
+  } 
+
+#   if (check_results(zv_res)) {
+#     print(paste('found one on', i))
+#     zv_count <- zv_count + 1
+#   }
+}
+
+
+vv <- do.call(cbind, vals)
+
+# let's do our comparisons
+all(rownames(avg_z) == rownames(vv))
+colnames(vv) <- gsub("ZSPC_L1000_", "", colnames(vv))
+avg_ov <- avg_z[,colnames(vv)]
+
+i <- 1
+
+coors <- do.call(rbind, lapply(1:ncol(avg_ov), function(i) {
+  data.frame(
+    key = colnames(avg_ov)[i],
+    idx = i,
+    correlation = cor(avg_ov[,i], vv[ ,i], use = 'complete.obs', method = 'spearman')
+  )
+}))
+
+
+hist(coors$correlation, breaks = 100, main = 'Spearman Correlation of 1181 ZPSCs', col = 'grey')
+median(coors$correlation)
+
+
+plot(avg_ov[,i], vv[ ,i], xlim = c(-5, 5), ylim = c(-5, 5), main = 'ZSPC_L100_NPC_Niclosamide_10_24', xlab = 'Source: HDF5', ylab = 'Source: Couchbase')
+plot(avg_ov[,i], vv[ ,i], xlim = c(-5, 5), ylim = c(-5, 5))
+plot(avg_ov[,i], vv[ ,i])
+
+ids <- sample(x = 1:nrow(coors), size = 9)
+par(mfrow = c(3, 3))
+for (id in ids) {
+  plot(avg_ov[,coors[id, 'idx']], vv[ ,coors[id, 'idx']], xlim = c(-5, 5), ylim = c(-5, 5), main = coors[id, 'key'], xlab = 'Source: HDF5', ylab = 'Source: Couchbase')
+}
+par(mfrow = c(1, 1))
+
+par(mfrow = c(1, 2))
+plot(avg_ov[,1], vv[ ,1], xlim = c(-5, 5), ylim = c(-5, 5), main = 'NPC_0054-0109_10_24', xlab = 'Source: HDF5', ylab = 'Source: Couchbase')
+plot(avg_ov[,1], vv[ ,1], main = 'NPC_0054-0109_10_24', xlab = 'Source: HDF5', ylab = 'Source: Couchbase')
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

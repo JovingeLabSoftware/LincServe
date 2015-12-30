@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#getByPert">getByPert</a></li><li data-type='method'><a href="LINCS.html#getExpression">getExpression</a></li><li data-type='method'><a href="LINCS.html#getGoldByCell">getGoldByCell</a></li><li data-type='method'><a href="LINCS.html#getNIDRange">getNIDRange</a></li><li data-type='method'><a href="LINCS.html#getSummaries">getSummaries</a></li><li data-type='method'><a href="LINCS.html#getVehicle">getVehicle</a></li><li data-type='method'><a href="LINCS.html#getZSVC">getZSVC</a></li><li data-type='method'><a href="LINCS.html#instSamePlateVehicles">instSamePlateVehicles</a></li><li data-type='method'><a href="LINCS.html#saveInstance">saveInstance</a></li><li data-type='method'><a href="LINCS.html#savePert">savePert</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#get">get</a></li><li data-type='method'><a href="LINCS.html#instanceQuery">instanceQuery</a></li><li data-type='method'><a href="LINCS.html#saveInstance">saveInstance</a></li><li data-type='method'><a href="LINCS.html#savePert">savePert</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -51,6 +51,8 @@ var config = require('../config');
  * @example
  * lincs = require('lincs');
  */
+var LINCS_MAXGET = 20;
+var LINCS_THROTTLE = 100;
 
 var LINCS = function () {
 	var _couchbase = require('couchbase');
@@ -59,10 +61,15 @@ var LINCS = function () {
     if(err) {
       throw new Error("Failed to connect to bucket.  Please confirm connection details in config.json");
     }
+    _bucket.connectionTimeout = 5000;
+    _bucket.operationTimeout = 5000;
   });
   var n1ql_url = "http://" + config.couchdb.ip + ":8093";
   var _n1ql = _couchbase.N1qlQuery;
   _bucket.enableN1ql([n1ql_url]);
+
+
+  
   var _view = _couchbase.ViewQuery;
 
    // no reason to do this now, but preparing for more logic 
@@ -71,315 +78,58 @@ var LINCS = function () {
    this.bucket = _bucket;
    this.view = _view;
    this.n1ql = _n1ql;
-};
 
-/**
- * Get gold instances for given cell line.
- * @param {string} cell Name of the cell line (e.g. 'A549').
- * @param {integer} skip How many records to skip.  Useful for paging/throttling.
- * @param {integer} limit How many records to return. 
- * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
- * @example
- * lincs.getGoldByCell('VCAP').then(function(err, res) { console.log(res[1])})
- */
-LINCS.prototype.getGoldByCell = function(cell, skip, limit, cb) {
-	var deferred = Q.defer();
-  var start = [cell, "", -10000, -10000];
-  var end = [cell, "\uefff", 10000, 10000];
-  var query = this.view.from('lincs', 'gold_by_cell')
-    .reduce(false)
-    .skip(skip)
-    .limit(limit)
-    .range(start, end);
-
-	this.bucket.query(query, function(err, results) { 
-  		if(err) {
-  			deferred.reject(err);
-  		} else {
-	  		deferred.resolve(results);
-  		}
-  	});
-
-  	deferred.promise.nodeify(cb);
-  	return deferred.promise;
+   // query queue
+   this._qq = [];
+   this._throttle = 0;
 };
 
 
 /**
- * Get the vehicle for a given instance
- * @param {string} key The key of the desired instance
+ * Get data for a set of primary ids.
+ * @param {string[]} ids List of ids. 
+ * @param {string} fields Fields to return, defaults to '*'
  * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ * @example lincs.get("1", "metadata.pert_desc").then(function(x) { console.log(x) });
  */
-
-LINCS.prototype.getVehicle = function(key, cb) {
-	var deferred = Q.defer();
-  	this.bucket.get(key, function(err, doc) {
-  		if(err) {
-  			deferred.reject(err);
-  		} else {
-	  		deferred.resolve({vehicle: doc.value.metadata.pert_vehicle, 
-	  		                  pert_time: doc.value.metadata.pert_time});
-  		}
-  	});
-  	deferred.promise.nodeify(cb);
-  	return deferred.promise;
-};
-
-/**
- * Get the vehicle instances for a given instance on the same plate
- * @param {string} key The key of the desired instance
- * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
- */
-
-LINCS.prototype.instSamePlateVehicles = function(key, cb) {
-	var deferred = Q.defer();
-	var _self = this;
-	this.getVehicle(key)
-	.then(function(v) {
-    var plate = key.replace(/\:.*/, "");
-    var query = _self.view.from('lincs', 'vehicle_by_plate')
-        .reduce(false).key( [plate, v.vehicle, v.pert_time]);
-    _self.bucket.query(query, function(err, results) { 
-      if(err) {
-        deferred.reject(err);
-      } else {
-        var ids = results.map(function(r) {
-          return(r.id);
-        });
-        Q.all(ids.map(function(id) {
-          var d = Q.defer();
-          _self.bucket.get(id, function(err, results) {
-            if(err) {
-              d.reject(err);
-            } else {
-              d.resolve({id: id, value: results.value});
-            }
-          });
-          return(d.promise);
-        }))
-        .then(deferred.resolve);
-      }
-    });
-	});
-	deferred.promise.nodeify(cb);
-  return deferred.promise;
-};
-
-
-/**
- * Get the Q2NORM data for a given instance (L1000 only)
- * @param {string} key The key of the desired instance
- * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
- */
-LINCS.prototype.getExpression = function(key, cb) {
-	var deferred = Q.defer();
-	this.bucket.get(key, function(err, doc) {
-		if(err) {
-			deferred.reject(err);
-		} else {
-  		deferred.resolve({gene_ids: doc.value.gene_ids, metadata: doc.value.metadata, norm_exp: doc.value.norm_exp});
-		}
-	});
-	deferred.promise.nodeify(cb);
-	return deferred.promise;
-};
-
-
-LINCS.prototype.query = function(q, cb) {
+LINCS.prototype.get = function(ids, fields, cb) {
+  fields = fields || "*";
+  fields = [].concat(fields);
   var deferred = Q.defer();
-  var query = this.n1ql.fromString(q);
-  this.bucket.query(query, function(err, res) {
-    if(err) {
-      deferred.reject(err);
-    } else {
-      deferred.resolve(res);
-    }
+  ids = [].concat(ids);
+  fields = fields.map(function(f) {
+      return("LINCS." + f);
   });
+
+	var q = this.n1ql.fromString(`SELECT META().id, ${fields.join(", ")} ` + 
+	  `FROM LINCS USE KEYS ` + JSON.stringify(this._arrayStringify(ids)));
+	this._execute(q, deferred);
   deferred.promise.nodeify(cb);
   return deferred.promise;
 };
 
+
+
 /**
- * Get the range of numerical ids.
- * Our documents have informative keys, but they are not amenable to sorting and ranging.
- * To overcome this we have created a view with numerical keys.  These can be sorted 
- * and ranged, but it is IMPORTANT to understand they are MAY NOT BE UNIQUE and ARE NOT CONTIGUOUS.  
- * We did not want to add the overhead of creating numeric UUIDs.  There are may be several docs
- * per key, but that is fine for our purposes of rapid indexing and ranging.
- * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
- * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
- * on a view is much faster, and using key ranges is even faster. 
+ * Retrieve instance data by query parameters.
+ * @param {object} query JSON formatted field/value pairs.  Value can be an
+ *                 array of possible values. 
+ * @param {string[]} fields Fields to return, defaults to '*'
+ * @param {number} skip how many records to skip (for paging)
+ * @param {number} limit how many records to return
  * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
+ * @example lincs.instanceQuery({"metadata.pert_desc": "Clindamycin"}).then(function(x) { console.log(x) });
  */
-LINCS.prototype.getNIDRange = function(cb) {
-  var deferred = Q.defer();
-  var query = this.view.from('lincs', 'numerical_index')
-    .reduce(true)
-
-  this.bucket.query(query, function(err, results) { 
-      if(err) {
-        deferred.reject(err);
-      } else {
-        deferred.resolve(results[0].value);
-      }
-    });
-
-    deferred.promise.nodeify(cb);
-    return deferred.promise;
-};
-
-/**
- * Get a set of doc summaries by NID (numerical ID) or index range.  NOTE: NIDs are NOT unique.  Expect
- * to get more docs than ids.  This index facilitates rapidly scanning the entire dataset.
- * This was done because N1QL's OFFSET is very slow--it retrieves all the documents 
- * up to OFFSET and the returns the number requested by LIMIT.  Using the skip option 
- * on a view is much faster, and using key ranges is even faster. 
- * @param {integer} first First numerical index to return.
- * @param {integer} last Last numerical index to return (inclusive).
- * @param {boolean} NID Are first and last NIDs?  Alternative is document number ("page").
- * @param {function} cb Call back to be called upon completion of async call.  Optional--can use promises instead.
- */
-LINCS.prototype.getSummaries = function(first, last, NID, cb) {
-  var deferred = Q.defer();
-  var query = this.view.from('lincs', 'numerical_index')
-    .reduce(false);
-  if(NID) {
-    query.options.startkey = first;  // query.range does not work because it adds quotes
-    query.options.endkey = last;
-  } else {
-    query = query.skip(first).limit(last-first);    
-  }
-  this.bucket.query(query, function(err, results) { 
-      if(err) {
-        deferred.reject(err);
-      } else {
-        deferred.resolve(results);
-      }
-    });
-
-    deferred.promise.nodeify(cb);
-    return deferred.promise;
-};
-
-/**
- * Get instance ids matching specified cell line and perturbagen.
- * Note that the view this function queries has a compound key.  Therefore,
- * if perturbagen (pert) is specified, cell_line must also be specified.
- * Similarly, if dose and time are specified, perturbagen and cell line 
- * must also be specified.
- * @param {string} cell_line ID of cell lines. Can be null.
- * @param {string} pert Name of perturbagen. Can be null.
- * @param {numeric} dose Dose (numeric, unitless).  Can be null.
- * @param {numeric} time Duration of exposure (numeric, unitless). Can be null.
- * @param {boolean} gold Should query be restricted to gold instances. If null,
- *                       defaults to true.
- * @param {function} cb Call back to be called upon completion of async call.  
- *                       Optional--can use promises instead.
- */
-LINCS.prototype.getByPert = function(cell_line, 
-                                     pert, 
-                                     dose, 
-                                     time, 
-                                     skip, 
-                                     limit, 
-                                     gold, 
-                                     cb) {
-  var query;
-  var deferred = Q.defer();
-  var startkey = [cell_line || "", pert || "", dose || -999, time || -999];
-  var endkey = [cell_line || "\uefff", pert || "\uefff", dose || 9999, time || 9999];
-  gold = gold || false;
-  
-  if(gold) {
-    query = this.view.from('lincs', 'gold_by_cell')
-      .reduce(false).skip(skip || 0).limit(limit || 1000);
-  } else {
-    query = this.view.from('lincs', 'all_by_cell')
-      .reduce(false).skip(skip || 0).limit(limit || 1000);
-  }
-  query.options.startkey = JSON.stringify(startkey);  // query.range does not work 
-                                                      // because it adds quotes
-  query.options.endkey = JSON.stringify(endkey);  
-
-  if(!cell_line &amp;&amp; pert) {
-    deferred.reject(new Error("Must specify cell line if perturbagen is specified"));
-  } else if((dose || time) &amp;&amp; (!pert || !cell_line)) {
-    deferred.reject(new Error("Must specify cell line and perturbagen " +
-                                "if dose and duration are specified"));
-  }
-  this.bucket.query(query, function(err, results) { 
-      if(err) {
-        deferred.reject(err);
-      } else {
-        deferred.resolve(results);
-      }
-    });
-
-    deferred.promise.nodeify(cb);
-    return deferred.promise;
+LINCS.prototype.instanceQuery = function(query, fields, skip, limit, cb) {
+	var deferred = Q.defer();
+	var q = this._prepare(fields, query, skip, limit);
+	console.log(q);
+  this._execute(q, deferred);
+  deferred.promise.nodeify(cb);
+  return deferred.promise;
 };
 
 
-/**
- * Get zscores (vs. vehicle control) matching specified cell line and perturbagen.
- * Note that the view this function queries has a compound key.  Therefore,
- * if perturbagen (pert) is specified, cell_line must also be specified.
- * Similarly, if dose and time are specified, perturbagen and cell line 
- * must also be specified.
- * @param {string} cell_line ID of cell lines. Can be null.
- * @param {string} pert Name of perturbagen. Can be null.
- * @param {numeric} dose Dose (numeric, unitless).  Can be null.
- * @param {numeric} time Duration of exposure (numeric, unitless). Can be null.
- * @param {boolean} gold Should query be restricted to gold instances. If null,
- *                       defaults to true.
- * @param {function} cb Call back to be called upon completion of async call.  
- *                       Optional--can use promises instead.
- */
-
-LINCS.prototype.getZSVC = function(cell_line, 
-                                     pert, 
-                                     dose, 
-                                     time, 
-                                     skip, 
-                                     limit, 
-                                     gold,
-                                     cb) {
-
-  var query;
-  var deferred = Q.defer();
-  var startkey = [cell_line || "", pert || "", dose || -999, time || -999];
-  var endkey = [cell_line || "\uefff", pert || "\uefff", dose || 9999, time || 9999];
-  gold = gold || true;
-  
-  if(gold) {
-    query = this.view.from('lincs_zscore', 'ZSVC_L1000_gold')
-      .reduce(false).skip(skip || 0).limit(limit || 1000);
-  } else {
-    query = this.view.from('lincs_zscore', 'ZSVC_L1000')
-      .reduce(false).skip(skip || 0).limit(limit || 1000);
-  }
-  
-  query.options.startkey = JSON.stringify(startkey);  // query.range does not work 
-                                                      // because it adds quotes
-  query.options.endkey = JSON.stringify(endkey);  
-  
-  if(!cell_line &amp;&amp; pert) {
-    deferred.reject(new Error("Must specify cell line if perturbagen is specified"));
-  } else if((dose || time) &amp;&amp; (!pert || !cell_line)) {
-    deferred.reject(new Error("Must specify cell line and perturbagen " +
-                                "if dose and duration are specified"));
-  }
-  this.bucket.query(query, function(err, results) { 
-      if(err) {
-        deferred.reject(err);
-      } else {
-        deferred.resolve(results);
-      }
-    });
-
-    deferred.promise.nodeify(cb);
-    return deferred.promise;
-};
 
 /**
  * Insert a perturbation score (e.g. zscore) data document into the store.  
@@ -390,7 +140,7 @@ LINCS.prototype.getZSVC = function(cell_line,
  */
 LINCS.prototype.savePert = function(doc, cb){
   var deferred = Q.defer();
-  if(!this._checkParams(doc, ['method', 'dose', 'perturbagen', 'duration', 'gene_ids', 'data', 'type'])){
+  if(!this._checkParams(doc, ['method', 'dose', 'perturbagen', 'duration', 'gene_ids', 'data'])){
     return(deferred.reject(new Error("document did not contain required parameters (saveInstance")));
   } else {
     if(doc.gene_ids.length != doc.data.length) {
@@ -423,6 +173,8 @@ LINCS.prototype.savePert = function(doc, cb){
  */
 LINCS.prototype.saveInstance = function(id, doc, cb){
   var deferred = Q.defer();
+  
+
    if(!this._checkParams(doc, ['metadata', 'gene_ids', 'data', 'type'])){
 
     deferred.reject(new Error("document did not contain required parameters (saveInstance"));
@@ -460,23 +212,107 @@ LINCS.prototype._checkParams = function(obj, vars) {
 };
 
 
-/* zscore view:
-function (doc, meta) {
-  if(doc.metadata.type == "ZSVC_L1000") {
-    emit([doc.metadata.cell_id,
-          doc.metadata.pert_id,
-          doc.metadata.pert_dose,
-          doc.metadata.pert_time],
-         {gene_ids: doc.gene_ids,
-          zscores: doc.zscores}
-    );
-  }
-}
+/* convert all members of an array to a string
 */
+LINCS.prototype._arrayStringify = function(a) {
+    var as = [];
+    a.forEach(function(x) { as.push(String(x)) });
+    return(as);
+};
+
+/* construct a well formed N1QL statement
+*  Note, order of where statements is important for compound indices
+*  Every field in "where" is prepended with metadata, although it will
+*  cope gracefully if that qualifier is already there.  As a result you 
+*  can only query based on metadata.
+*/
+LINCS.prototype._prepare = function(select, where, skip, limit) {
+  var _self = this;
+  var q;
+  
+  select = select || "*";
+  select = [].concat(select);
+  select = select.map(function(f) {
+      return("LINCS." + f);
+  });
+
+  var c = 0;
+  Object.keys(where).forEach(function(k) {
+    var key = "metadata." + k.replace(/metadata\\./, "")
+    if(c==0) {
+      q = `SELECT META().id, ${select.join(", ")} FROM LINCS `+
+              "WHERE " + _self._whereStmt(key, where[[k]]);
+      c++;
+    } else {
+      q += "AND " + _self._whereStmt(key, where[[k]]);
+      c++;
+    }
+  });
+
+  q += `${skip ? 'OFFSET ' + skip : ''} ${limit ? ' LIMIT ' + limit : ''}`;
+
+  // unquote numerics and booleans
+  q = q.replace(/['"]true['"]/g, "true").replace(/['"]false['"]/g, "false")
+       .replace(/['"]([\.\d]+)['"]/g, "$1");  
+  
+  return(this.n1ql.fromString(q));
+};
 
 
 
 
+/* helper function to assist in formatting where statements
+ * to address capitalization issues and = vs. IN
+*/
+LINCS.prototype._whereStmt = function(field, val) {
+  var op, rightside, leftside;
+
+  // right side
+  if(typeof(val) == "object") {
+    op = "IN";
+    if(field == "pert_desc") {
+      rightside = JSON.stringify(val.map(function(v) {
+        return(v.toLowerCase());
+      }));
+    } else {
+      rightside = JSON.stringify(val);
+    }
+  } else {
+    op = "=";
+    if(field == "metadata.pert_desc") {
+      rightside = JSON.stringify(val.toLowerCase());
+    } else {
+      rightside = JSON.stringify(val);
+    }
+  }
+ 
+  // left side 
+  if(field == "metadata.pert_desc") {
+    leftside = "lower(metadata.pert_desc)";
+  } else {
+    leftside = field;
+  }
+
+  return(`${leftside} ${op} ${rightside} `);
+};
+
+
+
+/* helper to execute N1QL queries with error handling
+*  query is a N1QL query object, promise is the promise
+*  to fulfill or reject upon completion.
+*/
+LINCS.prototype._execute = function(query, promise) {
+  this.bucket.query(
+    query,
+    function(err, data) {
+      if(err) {
+        promise.reject(err);
+      } else {
+        promise.resolve(data);
+      }
+  });
+};
 
 module.exports = exports = new LINCS();
 </code></pre>
@@ -491,7 +327,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Tue Dec 08 2015 22:33:39 GMT+0000 (UTC)
+    Documentation generated at Tue Dec 29 2015 16:18:03 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>

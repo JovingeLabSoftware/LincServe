@@ -70,7 +70,7 @@ Slinky$methods(setPort = function(port = '8080') {
 })
 
 
-Slinky$methods(calc = function(method = NULL, cluster = NULL) {
+Slinky$methods(calc = function(method = NULL, cores = NULL, cluster = NULL) {
   "Calculate zscores and stores them in the document store.
   \\subsection{Parameters}{
   \\itemize{
@@ -82,34 +82,41 @@ Slinky$methods(calc = function(method = NULL, cluster = NULL) {
   
   if (is.null(method)) stop('You must provide a calculation method...')
   
-  inst_count <- 1328047 # TODO: write a REST endpoint to get this info
-  
-  if(length(cluster)) {
-    
+  if (is.null(cores) & is.null(cluster)) {
+    message("Running calculations serially. Specify cores to run in parallel...")
+  } else if (!is.null(cluster)) {
     if (!("cluster" %in% class(cluster))) stop('Cluster must be created by snow library...')
-    
-      # to do: add cluster support
-      # still need to work out the best way to do this...
-
-#     chunks <- clusterSplit(cluster, seq_len(inst_count))
-#     # split the ids in chunks and
-#     switch(method,
-#            "ZSVC_L1000_gold" = .self$zvscChemGold(ids)
-#     )
-    
-  } else {
-    
-    # iterate over the ids sequentially
-    ids <- seq_len(inst_count)
-    switch(method,
-      "ZSVC_L1000_gold" = .self$zvscChem(ids)
-    )
+    registerDoSNOW(cluster)
+    clusterEvalQ(cluster, library(slinky))
+    clusterExport(cluster, ls())
+  } else if (!is.null(cores)) {
+    registerDoMC(cores)
   }
+  
+  if (!exists('metadata')) {
+    data("metadata")
+  }
+  metadata$key <- paste(metadata$cell_id, metadata$pert_desc, metadata$pert_dose, metadata$pert_time, sep = "_")
+  
+  # choose which calculation we want, filter the "keys" we need to compute signatures for
+  switch(method,
+         "zvscChem" = {
+           
+         },
+         "zvscSh" = {
+           
+         },
+         "zspc" = {
+           subber <- filter(metadata, pert_desc != "-666" & pert_type %in% c("trt_cp", "trt_poscon", "trt_lig", "trt_sh", "trt_oe", "trt_oe.mut"))
+           keys <- unique(subber$key)
+           .self$zspc(keys, meta = subber) 
+         }
+  )
 
 })
 
 
-Slinky$methods(zvscChem = function(ncores = 5) {
+Slinky$methods(zvscChem = function(ncores = 5, cluster = NULL) {
   "Calculate zscores for specific instances relative to mean 
   of appropriate vehicle controls on same plate.
   \\subsection{Parameters}{
@@ -122,11 +129,10 @@ Slinky$methods(zvscChem = function(ncores = 5) {
   # you need to compute
   if(!exists('metadata')) {
     data("metadata")
+    metadata$key <- paste(metadata$cell_id, metadata$pert_desc, metadata$pert_dose, metadata$pert_time, sep = "_")
   }
   subber <- metadata[,c('pert_desc', 'cell_id', 'pert_dose', 'pert_time')]
   subber <- metadata[!duplicated(subber),]
-  
-  registerDoMC(ncores)
   
   foreach (i = 1:nrow(subber)) %dopar% {
     
@@ -156,20 +162,19 @@ Slinky$methods(zvscChem = function(ncores = 5) {
   }
 })
 
-Slinky$methods(zvscSh = function(ncores = 5) {
+Slinky$methods(zvscSh = function(ncores = 5, cluster = NULL) {
   
   # smart way: use the metadata to fine the minimal set of z-scores
   # you need to compute
   if(!exists('metadata')) {
     data("metadata")
+    metadata$key <- paste(metadata$cell_id, metadata$pert_desc, metadata$pert_dose, metadata$pert_time, sep = "_")
   }
   
   subber <- filter(metadata, pert_type == 'trt_sh' & pert_desc != "-666")
   subber <- subber[,c('pert_desc', 'cell_id', 'pert_dose', 'pert_time')]
   subber <- subber[!duplicated(subber),]
 
-  registerDoMC(ncores)
-  
   foreach (i = 1:nrow(subber)) %dopar% {
     
     if (i %% 1000 == 0) .self$.log(level = "info", message = paste("Calculated", i, 'zscores'))
@@ -184,7 +189,7 @@ Slinky$methods(zvscSh = function(ncores = 5) {
     )
     
     if (nrow(replicates) > 1) {
-      scores <- do.call(cbind, lapply(replicates$id, .self$ZbyPlate, endpoint = "/sh_controls"))
+      scores <- do.call(cbind, lapply(replicates$id, .self$ZbyPlate, endpoint = "/sh_controls", control_type = 'ctl_vector'))
       gids <- rownames(scores)
       scores <- apply(scores, 1, mean)
       .self$saveZ(doc_type = "ZSVC_L1000", z_scores = scores, 
@@ -198,25 +203,26 @@ Slinky$methods(zvscSh = function(ncores = 5) {
 
 Slinky$methods(wholePlateZ = function(plate_info) {
   
-  url <- paste0("http://", .self$.ip, ":8092/LINCS/_design/debug/_view/plate_lookup?inclusive_end=true&stale=false&connection_timeout=60000&skip=0&key=%22", plate_info$det_plate[1], "%22")
-  res <- .self$.GET(url = url)
-  kk <- rjson::fromJSON(content(res, 'text'))$rows
-  distils <- sapply(kk, function(x) x$value)
-  
+  # grab plate info from n1ql API endpoint
+  q <- sprintf('SELECT metadata FROM LINCS WHERE metadata.det_plate = "%s" AND doctype="LINCS normalized expression"', plate_info$det_plate[1])
+  u <- sprintf("http://%s:8093/query/service", .self$.ip)
+  res <- .self$.POST(u, body = list(statement = q), encode = "json", verbose = TRUE)
+  kk <- jsonlite::fromJSON(content(res, 'text'))
+  distils <- kk$results$metadata$distil_id
+  # doc_ids <- kk$results$`$1`$id
+
   # make sure you have q2norm data uploaded for the sample b4 doing all of this
   if (any(plate_info$distil_id %in% distils)) {
-    
-    instances <- lapply(kk, function(x) {
-      u2 <- paste0(.self$.endpoint, '/instances/', x$id)
-      it <- .self$.GET(u2)
-      rjson::fromJSON(content(it, 'text'))
-    })
-    
-    stopifnot(length(kk) == length(instances))
-    
-    f <- function(x) x$data; fid <- function(x) x$metadata$distil_id; 
+
+    q <- sprintf('SELECT * FROM LINCS WHERE metadata.det_plate = "%s" AND doctype="LINCS normalized expression"', plate_info$det_plate[1])
+    u <- sprintf("http://%s:8093/query/service", .self$.ip)
+    res <- .self$.POST(u, body = list(statement = q), encode = "json", verbose = TRUE)
+    kk <- rjson::fromJSON(content(res, 'text'))
+    instances <- kk$results
+
+    f <- function(x) x$LINCS$data; fid <- function(x) x$LINCS$metadata$distil_id; 
     exprs <- do.call(cbind, lapply(instances, f))
-    rownames(exprs) <- instances[[1]]$gene_ids
+    rownames(exprs) <- instances[[1]]$LINCS$gene_ids
     colnames(exprs) <- lapply(instances, fid)
 
     # robust z-score description
@@ -236,39 +242,46 @@ Slinky$methods(wholePlateZ = function(plate_info) {
 })
 
 
-Slinky$methods(zspc = function(ncores = 5) {
-  registerDoMC(ncores)
-  if (!exists('metadata')) {
-    data("metadata")
+Slinky$methods(zspc = function(keys, meta) {
+
+  # if we have a parallel back-end registered, split our instances into chunks
+  # to be processed in parallel
+  if (is.null(getDoParName())) {
+    chunks <- list(keys)
+    message('Processing serially')
+  } else if (getDoParWorkers() > 1) {
+    chunks <- split(keys, cut(seq_along(keys), getDoParWorkers()))
+  } else {
+    chunks <- list(keys)
+    message('Processing serially')
   }
 
-  # need to seq along our keys so we can average z-scores across plates...
-  subber <- filter(metadata, pert_desc != "-666")
-  subber$key <- paste(subber$pert_desc, subber$cell_id, subber$pert_dose, subber$pert_time, sep = "_")
-  keys <- unique(subber$key)
-
-  foreach (i = seq_along(keys)) %dopar% {
-    if (i %% 1000 == 0) .self$.log(level = "info", message = paste("Calculated", i, 'zscores'))
-    
-    ki <- filter(subber, key == keys[i]) 
-    kil <- split(ki, ki$det_plate)
-    rep_zs <- do.call(rbind, lapply(kil, .self$wholePlateZ))
-    if (length(rep_zs)) {
-      if (is.matrix(rep_zs)) {
-        agg_z <- apply(rep_zs, MARGIN = 2, FUN = mean)
-      } else if (is.vector(agg_z)) {
-        agg_z <- rep_zs
+  foreach (j = chunks) %dopar% {
+    for (i in j)  {
+      
+      if (!.self$.checkZ(paste0("ZSPC_L1000_", i))) {
+        ki <- filter(meta, key == i) 
+        kil <- split(ki, ki$det_plate)
+        rep_zs <- do.call(rbind, lapply(kil, .self$wholePlateZ))
+        if (length(rep_zs)) {
+          if (is.matrix(rep_zs)) {
+            agg_z <- apply(rep_zs, MARGIN = 2, FUN = mean)
+          } else if (is.vector(agg_z)) {
+            agg_z <- rep_zs
+          }
+          inst <- ki[1, ]
+          .self$saveZ(doc_type = "ZSPC_L1000", z_scores = unname(agg_z), 
+                      gene_ids = names(agg_z), instance = inst)
+        } else {
+          .self$.log(
+            level = "error", 
+            message = paste("Failed to calculate scores for", keys[i], "skipping...")
+          )
+        }
       }
-      inst <- ki[1, ]
-      .self$saveZ(doc_type = "ZSPC_L1000", z_scores = unname(agg_z), 
-                  gene_ids = names(agg_z), instance = inst)
-    } else {
-      .self$.log(
-        level = "error", 
-        message = paste("Failed to calculate scores for", keys[i], "skipping...")
-      )
     }
   }
+
 })
 
 Slinky$methods(ZbyPlate = function(id, ...) {
@@ -300,7 +313,7 @@ Slinky$methods(ZbyPlate = function(id, ...) {
   fc
 })
 
-Slinky$methods(getPlateControls = function(id, endpoint = "/controls") {
+Slinky$methods(getPlateControls = function(id, endpoint = "/controls", control_type = 'ctl_vehicle') {
   "Fetch normalized expression data for control samples from same plate as id
   and treated only with the vehicle used for sample id.
   \\subsection{Parameters}{
@@ -309,17 +322,36 @@ Slinky$methods(getPlateControls = function(id, endpoint = "/controls") {
   }}
   \\subsection{Return Value}{dataframe containing normalized gene expression
   for controls.}"
-  veh <- .self$.GET(paste(.self$.endpoint, "/instances/", id, endpoint, sep=""))
-  if(length(veh)) {
-    veh <- gsub('\"', '"', content(veh, "text")) # need to get rid of escapes 
-    veh <- fromJSON(veh)
-    f <- function(x) {
-      return(x$value$data)
-    }
-    return(do.call(cbind, lapply(veh, f)))
+  
+  q <- sprintf('SELECT metadata.det_plate FROM LINCS WHERE Meta().id = "%s";', id)
+  u <- sprintf("http://%s:8093/query/service", .self$.ip)
+  res <- .self$.POST(u, body = list(statement = q), encode = "json", verbose = TRUE)
+  kk <- jsonlite::fromJSON(content(res, 'text'))
+  plate <- kk$results$det_plate
+  
+  q <- sprintf('SELECT data FROM LINCS WHERE metadata.det_plate = "%s" AND metadata.pert_type = "%s";', plate, control_type)
+  res <- .self$.POST(u, body = list(statement = q), encode = "json", verbose = TRUE)
+  kk <- jsonlite::fromJSON(content(res, 'text'))
+  
+  if (length(kk$results$data)) {
+    return(do.call(cbind, kk$results$data))
   } else {
     return(NULL)
   }
+  
+  
+#   veh <- .self$.GET(paste(.self$.endpoint, "/instances/", id, endpoint, sep=""))
+#   if(length(veh)) {
+#     veh <- gsub('\"', '"', content(veh, "text")) # need to get rid of escapes 
+#     veh <- fromJSON(veh)
+#     f <- function(x) {
+#       return(x$value$data)
+#     }
+#     return(do.call(cbind, lapply(veh, f)))
+#   } else {
+#     return(NULL)
+#   }
+  
 })
 
 
@@ -519,18 +551,21 @@ Slinky$methods(.checkParam = function(param, check_gold = FALSE) {
 #  See if a zscore document already exists
 #
 #
-Slinky$methods(.checkZ = function(i) {
-  return(FALSE)
-  
-  exists = FALSE;
-  url <- paste(.self$.endpoint, "/zscores/", i, "/exists", sep="")
-  res <- .self$.GET(url);
+Slinky$methods(.checkZ = function(id) {
+  exists <- FALSE
+  q <- sprintf('select Meta().id from LINCS where Meta().id = "%s";', id)
+  u <- sprintf("http://%s:8093/query/service", .self$.ip)
+  res <- .self$.POST(u, body = list(statement = q), encode = "json", verbose = TRUE)
   tryCatch({
-    exists <-  fromJSON(gsub('"', '', content(res, type = 'text')))
+    parsed <- jsonlite::fromJSON(content(res, type = 'text'))
+    if (length(parsed$results)) {
+      exists <- TRUE
+      .self$.log("info", paste("Z-score exists for id:", id))
+    }
   }, error = function(e) {
-    .self$.log("error", paste("EXCHECK (unknown error on checking for existance)", e, "id:", i))
+    .self$.log("error", paste("EXCHECK (unknown error on checking for existance)", e, "id:", id))
   })
-  return(exists > 0)
+  return(exists)
 })
 
 

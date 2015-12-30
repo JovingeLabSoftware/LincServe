@@ -30,6 +30,6 @@
   },
  "apidoc": {
     "title": "LINCS REST API Browser",
-    "url" : "https://localhost"
+    "url" : "http://54.152.59.84:8080"
   }
 }

@@ -34,7 +34,7 @@ Default is \code{all}.}
 \section{Methods}{
 
 \describe{
-\item{\code{ZbyPlate(id)}}{Calculate zscores for specific instance relative to mean 
+\item{\code{ZbyPlate(id, ...)}}{Calculate zscores for specific instance relative to mean 
 of appropriate vehicle controls on same plate.
 \subsection{Parameters}{
 \itemize{
@@ -51,7 +51,7 @@ Each node must have this package installed on it.}
 \subsection{Return Value}{None.  Called for side effect of populating 
 document store with zscores}}
 
-\item{\code{getPlateControls(id)}}{Fetch normalized expression data for control samples from same plate as id
+\item{\code{getPlateControls(id, endpoint = "/controls")}}{Fetch normalized expression data for control samples from same plate as id
 and treated only with the vehicle used for sample id.
 \subsection{Parameters}{
 \itemize{
@@ -85,11 +85,11 @@ object included in this package and added to resulting document.
 }}
 \subsection{Return Value}{none}}
 
-\item{\code{zvscChemGold(ids)}}{Calculate zscores for specific instances relative to mean 
+\item{\code{zvscChem(ncores = 5)}}{Calculate zscores for specific instances relative to mean 
 of appropriate vehicle controls on same plate.
 \subsection{Parameters}{
 \itemize{
-\item{\code{id} Ids of instance for which scores are desired.}
+\item{\code{id} Ids of instance for which scores are desired. Should be monotonically increasing.}
 }}
 \subsection{Return Value}{None.}}
 }}

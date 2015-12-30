@@ -12,10 +12,10 @@ Depends:
     rjson,
     dplyr,
     doMC,
+    doSNOW,
     tidyjson
 Collate: 
     'slinky.R'
-    'SLSlice.R'
 Suggests: knitr,
     testthat
 VignetteBuilder: knitr

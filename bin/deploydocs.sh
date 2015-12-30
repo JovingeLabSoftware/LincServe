@@ -1,8 +1,8 @@
 #!/bin/bash
 
 npm run docs
-cp -R ./docs/api/* ../CouchLincsDoc/CouchLincs/api
-cp -R ./docs/CouchLincs/1.0.0/* ../CouchLincsDoc/CouchLincs
-git --git-dir=../CouchLincsDoc/CouchLincs/.git --work-tree=../CouchLincsDoc/CouchLincs commit -am "Documentation update"
-git --git-dir=../CouchLincsDoc/CouchLincs/.git --work-tree=../CouchLincsDoc/CouchLincs push
+cp -R ./docs/api/* ../../LincServeDoc/api
+cp -R ./docs/CouchLincs/1.0.0/* ../../LincServeDoc/LincServe
+git --git-dir=../../LincServeDoc/.git --work-tree=../../LincServeDoc commit -am "Documentation update"
+git --git-dir=../../LincServeDoc/.git --work-tree=../../LincServeDoc push origin gh-pages
 
