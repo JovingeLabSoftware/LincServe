@@ -114,7 +114,7 @@ describe('LINCS methods', function() {
                             pert_desc: data.metadata.pert_vehicle,
                             pert_time: data.metadata.pert_time},  // query
                             ['metadata.pert_id'], // fields
-                            null,                    // skip
+                            0,                    // skip
                             null);                   // limit
       var url = encodeURI(`/LINCS/instances?${qs}`)
       client.get(url, function(err, req, res, data) {

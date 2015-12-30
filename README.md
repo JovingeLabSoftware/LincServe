@@ -3,9 +3,9 @@ A high performance (hopefully) LINCS data server including Node.js server, couch
 
 # Docs
 
-[Server side module (lincs.js) documentation:](http://jovingelabsoftware.github.io/CouchLincs/)
+[Server side module (lincs.js) documentation:](http://jovingelabsoftware.github.io/LincServe/)
 
-[REST API documentation:](http://jovingelabsoftware.github.io/CouchLincs/api)
+[REST API documentation:](http://jovingelabsoftware.github.io/LincServe/api)
 
 # Install
 

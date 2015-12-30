@@ -18,14 +18,14 @@ define({ "api": [
           },
           {
             "group": "Parameter",
-            "type": "<p>numeric</p> ",
+            "type": "<p>Numeric</p> ",
             "optional": false,
             "field": "dose",
             "description": "<p>dose (unitless)</p> "
           },
           {
             "group": "Parameter",
-            "type": "<p>numeric</p> ",
+            "type": "<p>Numeric</p> ",
             "optional": false,
             "field": "duration",
             "description": "<p>duration (unitless)</p> "
@@ -46,21 +46,21 @@ define({ "api": [
           },
           {
             "group": "Parameter",
-            "type": "<p>boolean</p> ",
+            "type": "<p>Boolean</p> ",
             "optional": false,
             "field": "gold",
             "description": "<p>is this a gold signature score?</p> "
           },
           {
             "group": "Parameter",
-            "type": "<p>[String]</p> ",
+            "type": "<p>String[]</p> ",
             "optional": false,
             "field": "gene_ids",
             "description": "<p>from lincs</p> "
           },
           {
             "group": "Parameter",
-            "type": "<p>[Numeric]</p> ",
+            "type": "<p>Numeric[]</p> ",
             "optional": false,
             "field": "data",
             "description": "<p>the scores (one per gene)</p> "
@@ -73,7 +73,7 @@ define({ "api": [
         "Success 200": [
           {
             "group": "Success 200",
-            "type": "<p>string</p> ",
+            "type": "<p>String</p> ",
             "optional": false,
             "field": "Id",
             "description": "<p>of created object</p> "
@@ -95,10 +95,10 @@ define({ "api": [
   {
     "type": "POST",
     "url": "/LINCS/instances/distil_id",
-    "title": "Request data by distil_id (multi)",
+    "title": "data by distil_id (multi)",
     "name": "distilIdsData",
     "group": "LINCS",
-    "description": "<p>Fetch metadata for given instance by distil_id.  We use POST here because keys are long and could quickly exceed GET query string limit imposed by many clients.</p> ",
+    "description": "<p>Fetch metadata for given instance by distil_id.  We use POST here because keys are long and could quickly exceed GET query string limits. The same data can be achieved with the /LINCS/instances GET endpoint using the 'q' parameter, but that may fail with large numbers of distil_ids due to query string length limits imposed by many clients.</p> ",
     "parameter": {
       "fields": {
         "Parameter": [
@@ -142,170 +142,6 @@ define({ "api": [
         {
           "title": "Success-Response: ",
           "content": "HTTP/1.1 200 OK\nContent-Type: application/json\n[  \n{\n   \"data\": { ... }\n   \"gene_ids\": { ... }\n   \"metadata\": { ... },\n   \"id\": \"312240\"\n } \n... // truncated\n]",
-          "type": "json"
-        }
-      ]
-    },
-    "version": "0.0.0",
-    "filename": "bin/app.js",
-    "groupTitle": "LINCS"
-  },
-  {
-    "type": "GET",
-    "url": "/LINCS/instances/:id/controls",
-    "title": "Retrieve control data",
-    "name": "getControls",
-    "group": "LINCS",
-    "description": "<p>Retrieves the full data document for each instance on the same plate as :id whose perturbagen is the appropriate control for that instance (including time of exposure and cell line).</p> ",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "<p>String</p> ",
-            "optional": false,
-            "field": "id",
-            "description": "<p>of instance for which controls are desired.</p> "
-          }
-        ]
-      }
-    },
-    "success": {
-      "fields": {
-        "Success 200": [
-          {
-            "group": "Success 200",
-            "type": "<p>string</p> ",
-            "optional": false,
-            "field": "data",
-            "description": "<p>Document in JSON format</p> "
-          }
-        ]
-      },
-      "examples": [
-        {
-          "title": "Success-Response (note array): ",
-          "content": "HTTP/1.1 200 OK\n{\n[\"gene_ids\": [\n    \"200814_at\",\n    \"222103_at\",\n    \"...truncated...\"\n    ],\n\"metadata\": {\n    \"bead_batch\": \"b3\",\n    \"bead_revision\": \"r2\",\n    \"bead_set\": \"dp52,dp53\",\n    \"cell_id\": \"HCC515\",\n    \"...truncated...\"\n},\n\"data\": [\n    9.15469932556152,\n    9.05399990081787,\n    \"...truncated...\"\n    ]\n },\n \"...truncated...\"\n]\n}",
-          "type": "json"
-        }
-      ]
-    },
-    "version": "0.0.0",
-    "filename": "bin/app.js",
-    "groupTitle": "LINCS"
-  },
-  {
-    "type": "GET",
-    "url": "/LINCS/sh_controls",
-    "title": "Retrieve control data for shRNA",
-    "name": "getShControls",
-    "group": "LINCS",
-    "description": "<p>Retrieves the appropriate shRNA controls</p> ",
-    "version": "0.0.0",
-    "filename": "bin/app.js",
-    "groupTitle": "LINCS"
-  },
-  {
-    "type": "GET",
-    "url": "/LINCS/instances/distil_id/:distil_id",
-    "title": "Request instance by distil_id",
-    "name": "instanceByDistil_id",
-    "group": "LINCS",
-    "description": "<p>Fetch data for a given instance by distil_id</p> ",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "<p>string</p> ",
-            "optional": false,
-            "field": "distil_id",
-            "description": "<p>Id of instance</p> "
-          }
-        ]
-      }
-    },
-    "examples": [
-      {
-        "title": "Example usage:",
-        "content": "curl localhost:8080/LINCS/instances/\\\n   CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05",
-        "type": "curl"
-      }
-    ],
-    "success": {
-      "fields": {
-        "Success 200": [
-          {
-            "group": "Success 200",
-            "type": "<p>Object</p> ",
-            "optional": false,
-            "field": "data",
-            "description": "<p>Data doc in JSON format</p> "
-          }
-        ]
-      },
-      "examples": [
-        {
-          "title": "Success-Response: ",
-          "content": "HTTP/1.1 200 OK\nContent-Type: application/json\n{\n  \"data\": { ... },\n  \"gene_ids\": { ... },\n  \"metadata\": { ... },\n  \"id\": \"1230884\"\n}",
-          "type": "json"
-        }
-      ]
-    },
-    "version": "0.0.0",
-    "filename": "bin/app.js",
-    "groupTitle": "LINCS"
-  },
-  {
-    "type": "GET",
-    "url": "/LINCS/instances/distil_id/:distil_id/:fields",
-    "title": "Request instance by distil_id",
-    "name": "instanceByDistil_idWithField",
-    "group": "LINCS",
-    "description": "<p>Fetch specific field of data for a given instance by distil_id</p> ",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "<p>string</p> ",
-            "optional": false,
-            "field": "distil_id",
-            "description": "<p>Id of instance</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>string</p> ",
-            "optional": false,
-            "field": "fields",
-            "description": "<p>optional list of fields in JSON format (e.g. {fields = [metadata.pert_desc, metadata.pert_id]} to limit data returned.  Default is all data.</p> "
-          }
-        ]
-      }
-    },
-    "examples": [
-      {
-        "title": "Example usage:",
-        "content": "curl localhost:8080/LINCS/instances/\\\n   CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05/metadata",
-        "type": "curl"
-      }
-    ],
-    "success": {
-      "fields": {
-        "Success 200": [
-          {
-            "group": "Success 200",
-            "type": "<p>Object</p> ",
-            "optional": false,
-            "field": "metadata",
-            "description": "<p>Metadats docs in JSON format</p> "
-          }
-        ]
-      },
-      "examples": [
-        {
-          "title": "Success-Response: ",
-          "content": "HTTP/1.1 200 OK\nContent-Type: application/json\n{\n  \"data\": { ... },\n  \"metadata\": { ... },\n  \"gene_ids\": { ... },\n  \"id\": \"1230884\"\n}",
           "type": "json"
         }
       ]
@@ -371,7 +207,7 @@ define({ "api": [
     "title": "Query instances",
     "name": "instanceQuery",
     "group": "LINCS",
-    "description": "<p>Fetch data for instances matching query</p> ",
+    "description": "<p>Fetch data for instances matching query.  Either ids or q should be specified</p> ",
     "parameter": {
       "fields": {
         "Parameter": [
@@ -386,15 +222,29 @@ define({ "api": [
             "group": "Parameter",
             "type": "<p>String[]</p> ",
             "optional": true,
-            "field": "f",
-            "description": "<p>Optional list of fields to return, e.g. [metadata.pert_desc, gene_ids]</p> "
+            "field": "q",
+            "description": "<p>Optional query in form of field: value pairs, as in: q={&quot;pert_desc&quot;: &quot;celecoxib&quot;, &quot;pert_type&quot;: &quot;trt_cp&quot;}.<br> Note that fields are assumed to be in metadata slot. Querying outside the metadata is not possible.</p> "
           },
           {
             "group": "Parameter",
             "type": "<p>String[]</p> ",
             "optional": true,
-            "field": "fields",
-            "description": "<p>Optional list of fields to return, e.g. [metadata.pert_desc, gene_ids]</p> "
+            "field": "f",
+            "description": "<p>Optional list of fields to return, e.g. [metadata.pert_desc, gene_ids] Note that parent field must be explicitly declared (e.g. metadata), so that top level slots (data, gene_ids) can be requested and returned.</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>Number</p> ",
+            "optional": false,
+            "field": "s",
+            "description": "<p>Number of records to skip (for paging)</p> "
+          },
+          {
+            "group": "Parameter",
+            "type": "<p>Number</p> ",
+            "optional": false,
+            "field": "l",
+            "description": "<p>Number of records to return (limit)</p> "
           }
         ]
       }
@@ -402,7 +252,7 @@ define({ "api": [
     "examples": [
       {
         "title": "Example usage:",
-        "content": "curl -G \"http://localhost:8080/LINCS/instances\" --data-urlencode \"ids=[1,2,3]\" --data-urlencode f='[\"metadata.pert_type\"]'\ncurl -G \"http://localhost:8082/LINCS/instances\" --data-urlencode q='{\"pert_desc\": \"celecoxib\"}' \\\n   --data-urlencode f='[\"metadata.pert_type\"]' --data l=10 --data s=10",
+        "content": "curl -G \"http://localhost:8080/LINCS/instances\" --data-urlencode \"ids=[1,2,3]\" \\\n   --data-urlencode f='[\"metadata.pert_type\"]'\ncurl -G \"http://localhost:8082/LINCS/instances\" --data-urlencode q='{\"pert_desc\": \"celecoxib\"}' \\\n   --data-urlencode f='[\"metadata.pert_type\"]' --data l=10 --data s=10",
         "type": "curl"
       }
     ],
@@ -463,14 +313,14 @@ define({ "api": [
           },
           {
             "group": "Parameter",
-            "type": "<p>[String]</p> ",
+            "type": "<p>String[]</p> ",
             "optional": false,
             "field": "gene_ids",
             "description": "<p>from lincs</p> "
           },
           {
             "group": "Parameter",
-            "type": "<p>[Numeric]</p> ",
+            "type": "<p>Numeric[]</p> ",
             "optional": false,
             "field": "data",
             "description": "<p>the expression data</p> "
@@ -483,7 +333,7 @@ define({ "api": [
         "Success 200": [
           {
             "group": "Success 200",
-            "type": "<p>string</p> ",
+            "type": "<p>String</p> ",
             "optional": false,
             "field": "response",
             "description": "<p>response</p> "
@@ -501,80 +351,6 @@ define({ "api": [
     "version": "0.0.0",
     "filename": "bin/app.js",
     "groupTitle": "LINCS"
-  },
-  {
-    "type": "POST",
-    "url": "/LINCS/data Post ids (either primary or view) and retrieve",
-    "title": "documents",
-    "name": "retrieveData",
-    "group": "LINCS",
-    "description": "<p>Retrieves multiple docs by primary or view id.  We use POST here becuase keys are large and quickly exceed GET query string length limit imposed by many clients</p> ",
-    "parameter": {
-      "fields": {
-        "Parameter": [
-          {
-            "group": "Parameter",
-            "type": "<p>[String]</p> ",
-            "optional": false,
-            "field": "keys",
-            "description": "<p>List of primary or view keys</p> "
-          },
-          {
-            "group": "Parameter",
-            "type": "<p>String</p> ",
-            "optional": false,
-            "field": "view",
-            "description": "<p>Name of view.  If missing will use primary index</p> "
-          }
-        ]
-      }
-    },
-    "success": {
-      "fields": {
-        "Success 200": [
-          {
-            "group": "Success 200",
-            "type": "<p>string</p> ",
-            "optional": false,
-            "field": "Id",
-            "description": "<p>of created object</p> "
-          }
-        ]
-      },
-      "examples": [
-        {
-          "title": "Success-Response: ",
-          "content": "HTTP/1.1 200 OK\n{\n ...\n}",
-          "type": "json"
-        }
-      ]
-    },
-    "version": "0.0.0",
-    "filename": "bin/app.js",
-    "groupTitle": "LINCS"
-  },
-  {
-    "type": "get",
-    "url": "/LINCS",
-    "title": "Get some documentation on endpoints.",
-    "name": "Root",
-    "group": "Root",
-    "success": {
-      "fields": {
-        "Success 200": [
-          {
-            "group": "Success 200",
-            "type": "<p>string</p> ",
-            "optional": false,
-            "field": "response",
-            "description": "<p>Some useful information.</p> "
-          }
-        ]
-      }
-    },
-    "version": "0.0.0",
-    "filename": "bin/app.js",
-    "groupTitle": "Root"
   },
   {
     "type": "get",
@@ -608,6 +384,29 @@ define({ "api": [
           "type": "json"
         }
       ]
+    },
+    "version": "0.0.0",
+    "filename": "bin/app.js",
+    "groupTitle": "Root"
+  },
+  {
+    "type": "get",
+    "url": "/LINCS",
+    "title": "Get some documentation on endpoints.",
+    "name": "Root",
+    "group": "Root",
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "<p>string</p> ",
+            "optional": false,
+            "field": "response",
+            "description": "<p>Some useful information.</p> "
+          }
+        ]
+      }
     },
     "version": "0.0.0",
     "filename": "bin/app.js",
