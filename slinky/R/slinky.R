@@ -50,7 +50,7 @@ Slinky$methods(setIp = function(ip = '127.0.0.1') {
   "Set IP and redefine endpoint
   \\subsection{Parameters}{
   \\itemize{
-
+  
   \\item{\\code{ip} The IP address of the your LINCS REST server, default is \\code{127.0.0.1}.}
   }}
   \\subsection{Return Value}{none}"
@@ -100,8 +100,10 @@ Slinky$methods(calc = function(method = NULL, cores = NULL, cluster = NULL) {
   
   # choose which calculation we want, filter the "keys" we need to compute signatures for
   switch(method,
-         "zvscChem" = {
-           
+         "zsvcChem" = {
+           subber <- filter(metadata, pert_desc != "-666" & pert_type == "trt_cp")
+           keys <- unique(subber$key)
+           .self$zsvc(keys, meta = subber) 
          },
          "zvscSh" = {
            
@@ -112,8 +114,108 @@ Slinky$methods(calc = function(method = NULL, cores = NULL, cluster = NULL) {
            .self$zspc(keys, meta = subber) 
          }
   )
-
+  
 })
+
+
+Slinky$methods(zsvc = function(keys, meta) {
+  
+  chunks <- split(meta$distil_id, meta$det_plate)
+  
+  # if we have a parallel back-end registered, use it
+  foreach (p = unique(meta$det_plate)) %dopar% {
+    slice <- filter(meta, pert_desc != "-666" & pert_type %in% c("trt_cp", "ctrl_vehicle") & det_plate == p)
+    data = .self$getInstanceData(slice$distil_id)
+    console.log(ncol(data))
+    #          .self$saveZ(doc_type = "ZSVC_L1000", z_scores = unname(agg_z), 
+    #                      gene_ids = names(agg_z), instance = inst)
+    #        } else {
+    #          .self$.log(
+    #            level = "error", 
+    #            message = paste("Failed to calculate scores for", keys[i], "skipping...")
+    #          )
+  }
+})
+
+Slinky$methods(getInstanceData = function(ids) {
+  "Retrieve data for multiple distil_ids. Uses the POST interface of the 
+  REST API to avoid query string length restriction for GET queries, enabling
+  retrieval of large(r) datasets.
+  \\subsection{Parameters}{
+  \\itemize{
+  \\item{\\code{ids} distil_ids for which data is desired.}
+  }}
+  \\subsection{Return Value}{List of items}"
+  
+  url <- paste(.self$.endpoint, "/instances/distil_id", sep="")
+  query <- list(
+    ids = ids,
+    fields = c("metadata.distil_id", "data", "gene_ids")
+  )
+  res <- content(.self$.POST(url = url, body = query, encode = "json"))
+  data <- do.call(cbind, lapply(res, .self$.extract, "data"))
+  colnames(data) <- sapply(res, .self$.extract, "distil_id")
+  rownames(data) <- res[[1]]$gene_ids
+  data
+})
+
+
+
+Slinky$methods(query = function(q, f=NA, l=NA, s=NA) {
+  "Retrieve metadata using the query interface of the REST API. 
+  \\subsection{Parameters}{
+  \\itemize{
+  \\item{\\code{q} query terms as field=value pairs in the form of a list.  Value
+         may be a single value or a vector of values.  Fields are assumed to be 
+         within the metadata slot of the data, so there is no need to prefix fields 
+         with 'metadata.', although it is allowed.  This also means query is restricted
+         to the metadata (i.e. you cannot query based on gene_ids or doctype).}
+  \\item{\\code{f} vector of fields to return.  Defaults to '*'.  Note here subfields
+                   (e.g. metdata.pert_desc) must be explicit as top level fields (e.g. data)
+                   can also be returned
+  \\item{\\code{l} limit, for paging (number of documents to return, default is everything)
+  \\item{\\code{s} skip, for paging (default in 0)
+  }}
+  \\subsection{Return Value}{List with metadata and data (gene expression) components}"
+
+  if(is.na(f)) f = c("data", "gene_ids", "metadata.*", "doctype")
+  if("data" %in% f && !"gene_ids" %in% f) f = c(f, "gene_ids")
+  url <- paste(.self$.endpoint, "/instances", sep="")
+  query <- paste("q=", jsonlite::toJSON(q), sep="")
+  query <- paste(query, "&f=", jsonlite::toJSON(f), sep="")
+  if(!is.na(l)) query <- paste(query, "&l=", l, sep="")
+  if(!is.na(s)) query <- paste(query, "&s=", s, sep="")
+
+  res <- content(.self$.GET(url = url, query = query, encode="json"))
+  data <- NULL
+  ids <- .self$.extract(res[[1]], "gene_ids")
+  metadata <- NULL
+  names <- names(res[[1]])
+  if("gene_ids" %in% names || "data" %in% names)
+       names <- names[-which(names %in% c("gene_ids", "data"))]
+
+  fd <- function(x) {
+    return(.self$.extract(x, "data"))
+  }
+  data <- do.call(cbind, lapply(res, fd))
+  for(i in 1:length(res)) {
+    row = NULL;
+    for(n in names(res[[i]])) {
+      if (n != "gene_ids" && n != "data") {
+        row = c(row, .self$.extract(res[[i]], n))
+      }
+    }
+    metadata <- rbind(metadata, row)
+  }
+  metadata <- as.data.frame(metadata, stringsAsFactors=F) # handle single row case
+  colnames(metadata) <- names
+  data <- as.data.frame(data)
+  rownames(data) <- ids
+
+    return(list(metadata=metadata, data=data))
+})
+
+
 
 
 Slinky$methods(zvscChem = function(ncores = 5, cluster = NULL) {
@@ -174,7 +276,7 @@ Slinky$methods(zvscSh = function(ncores = 5, cluster = NULL) {
   subber <- filter(metadata, pert_type == 'trt_sh' & pert_desc != "-666")
   subber <- subber[,c('pert_desc', 'cell_id', 'pert_dose', 'pert_time')]
   subber <- subber[!duplicated(subber),]
-
+  
   foreach (i = 1:nrow(subber)) %dopar% {
     
     if (i %% 1000 == 0) .self$.log(level = "info", message = paste("Calculated", i, 'zscores'))
@@ -210,21 +312,21 @@ Slinky$methods(wholePlateZ = function(plate_info) {
   kk <- jsonlite::fromJSON(content(res, 'text'))
   distils <- kk$results$metadata$distil_id
   # doc_ids <- kk$results$`$1`$id
-
+  
   # make sure you have q2norm data uploaded for the sample b4 doing all of this
   if (any(plate_info$distil_id %in% distils)) {
-
+    
     q <- sprintf('SELECT * FROM LINCS WHERE metadata.det_plate = "%s" AND doctype="LINCS normalized expression"', plate_info$det_plate[1])
     u <- sprintf("http://%s:8093/query/service", .self$.ip)
     res <- .self$.POST(u, body = list(statement = q), encode = "json", verbose = TRUE)
     kk <- rjson::fromJSON(content(res, 'text'))
     instances <- kk$results
-
+    
     f <- function(x) x$LINCS$data; fid <- function(x) x$LINCS$metadata$distil_id; 
     exprs <- do.call(cbind, lapply(instances, f))
     rownames(exprs) <- instances[[1]]$LINCS$gene_ids
     colnames(exprs) <- lapply(instances, fid)
-
+    
     # robust z-score description
     # http://support.lincscloud.org/hc/en-us/articles/202099616-Signature-Generation-and-Analysis-L1000-
     rbz <- function(x) (x - median(x)) / (mad(x) * 1.4826)
@@ -236,14 +338,14 @@ Slinky$methods(wholePlateZ = function(plate_info) {
     .self$.log(
       level = "error", 
       message = paste("Could not find", paste(plate_info$distil_id, collapse = '/'), "on plate", plate_info$det_plate[1])
-      )
+    )
     return(NULL)
   }
 })
 
 
 Slinky$methods(zspc = function(keys, meta) {
-
+  
   # if we have a parallel back-end registered, split our instances into chunks
   # to be processed in parallel
   if (is.null(getDoParName())) {
@@ -255,7 +357,7 @@ Slinky$methods(zspc = function(keys, meta) {
     chunks <- list(keys)
     message('Processing serially')
   }
-
+  
   foreach (j = chunks) %dopar% {
     for (i in j)  {
       
@@ -281,7 +383,7 @@ Slinky$methods(zspc = function(keys, meta) {
       }
     }
   }
-
+  
 })
 
 Slinky$methods(ZbyPlate = function(id, ...) {
@@ -340,17 +442,17 @@ Slinky$methods(getPlateControls = function(id, endpoint = "/controls", control_t
   }
   
   
-#   veh <- .self$.GET(paste(.self$.endpoint, "/instances/", id, endpoint, sep=""))
-#   if(length(veh)) {
-#     veh <- gsub('\"', '"', content(veh, "text")) # need to get rid of escapes 
-#     veh <- fromJSON(veh)
-#     f <- function(x) {
-#       return(x$value$data)
-#     }
-#     return(do.call(cbind, lapply(veh, f)))
-#   } else {
-#     return(NULL)
-#   }
+  #   veh <- .self$.GET(paste(.self$.endpoint, "/instances/", id, endpoint, sep=""))
+  #   if(length(veh)) {
+  #     veh <- gsub('\"', '"', content(veh, "text")) # need to get rid of escapes 
+  #     veh <- fromJSON(veh)
+  #     f <- function(x) {
+  #       return(x$value$data)
+  #     }
+  #     return(do.call(cbind, lapply(veh, f)))
+  #   } else {
+  #     return(NULL)
+  #   }
   
 })
 
@@ -407,16 +509,16 @@ Slinky$methods(loadLevel2 = function(gctxfile = "/mnt/lincs/q2norm_n1328098x2226
 
 
 Slinky$methods(saveZ = function(doc_type, z_scores, gene_ids, instance) { 
-#   "Save the calculated z-scores to CouchBase via the REST API given a set of 
-#   relative expression values, a \\code{type} of document to store the scores
-#   as, and the \\code{list} representation of an \\code{q2norm} instance.
-#   \\subsection{Parameters}{
-#   \\itemize{
-#   \\item{\\code{doc_type} The \code{type} of document you'd like to associate with the saved document.}
-#   \\item{\\code{z_scores} A named vector of robust z-scores.}
-#   \\item{\\code{instance} A \code{list} representation of an \code{q2norm} instance.}
-#   }}
-#   \\subsection{Return Value}{id(s) of resulting documents in doc store.}"
+  #   "Save the calculated z-scores to CouchBase via the REST API given a set of 
+  #   relative expression values, a \\code{type} of document to store the scores
+  #   as, and the \\code{list} representation of an \\code{q2norm} instance.
+  #   \\subsection{Parameters}{
+  #   \\itemize{
+  #   \\item{\\code{doc_type} The \code{type} of document you'd like to associate with the saved document.}
+  #   \\item{\\code{z_scores} A named vector of robust z-scores.}
+  #   \\item{\\code{instance} A \code{list} representation of an \code{q2norm} instance.}
+  #   }}
+  #   \\subsection{Return Value}{id(s) of resulting documents in doc store.}"
   
   if (missing(doc_type)) stop('You must provide a document type when saving z-scores.')
   if (missing(z_scores)) stop('You must provide z-scores when saving z-scores.')
@@ -445,9 +547,9 @@ Slinky$methods(saveZ = function(doc_type, z_scores, gene_ids, instance) {
     gene_ids = gene_ids,
     data = z_scores
   )
-
+  
   res <- .self$.POST(url = url, body = query, encode = "json", verbose = TRUE)
-
+  
   if (res$status_code != 200L) {
     .self$.log("error", paste("ERR failed to save zscores for instance", instance$cell_id, instance$pert_desc, instance$pert_dose, instance$pert_time))
   } else {
@@ -628,8 +730,8 @@ Slinky$methods(.summaryToDF = function(json) {
 #
 Slinky$methods(.log = function(level, message, line = NULL) {
   if( (level == "error" && .self$loglevel != "none") || 
-        (level == "warn" && .self$loglevel %in%  c("all", "warn")) ||
-        (level == "info" && .self$loglevel == "all") ) {    
+      (level == "warn" && .self$loglevel %in%  c("all", "warn")) ||
+      (level == "info" && .self$loglevel == "all") ) {    
     msg <- paste(line, toupper(level), ":", message)
     if(!.self$silent) print(msg)
     write(message, file=.self$logfile, append=TRUE)
@@ -689,3 +791,20 @@ Slinky$methods(.POST = function(url, body="", query="", rep=0, ...) {
   response
 })
 
+#
+# .extract (private method)
+# Collect a specified element from a list, converting to vector as needed
+# and return as a singleton.  Used for transforming compound lists into
+# dataframes or matrices.
+#
+# .extract (private method)
+# Collect a specified element from a list, converting to vector as needed
+# and return as a singleton.  Used for transforming compound lists into
+# dataframes or matrices.
+Slinky$methods(.extract = function(x, el) {
+  if(exists(el, x)) {
+    return(unlist(x[[el]]))  
+  } else {
+    return(NULL)
+  }
+})

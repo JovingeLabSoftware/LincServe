@@ -42,7 +42,7 @@ of appropriate vehicle controls on same plate.
 }}
 \subsection{Return Value}{Vector containing robust z-scores for each gene.}}
 
-\item{\code{calc(method = NULL, cluster = NULL)}}{Calculate zscores and stores them in the document store.
+\item{\code{calc(method = NULL, cores = NULL, cluster = NULL)}}{Calculate zscores and stores them in the document store.
 \subsection{Parameters}{
 \itemize{
 \item{\code{cluster} An optional cluster object to use for calculations. 
@@ -51,7 +51,16 @@ Each node must have this package installed on it.}
 \subsection{Return Value}{None.  Called for side effect of populating 
 document store with zscores}}
 
-\item{\code{getPlateControls(id, endpoint = "/controls")}}{Fetch normalized expression data for control samples from same plate as id
+\item{\code{getInstanceData(ids)}}{Retrieve data for multiple distil_ids. Uses the POST interface of the 
+REST API to avoid query string length restriction for GET queries, enabling
+retrieval of large(r) datasets.
+\subsection{Parameters}{
+\itemize{
+\item{\code{ids} distil_ids for which data is desired.}
+}}
+\subsection{Return Value}{List of items}}
+
+\item{\code{getPlateControls(id, endpoint = "/controls", control_type = "ctl_vehicle")}}{Fetch normalized expression data for control samples from same plate as id
 and treated only with the vehicle used for sample id.
 \subsection{Parameters}{
 \itemize{
@@ -71,12 +80,12 @@ object included in this package and added to resulting document.
 \subsection{Return Value}{id(s) of resulting documents in doc store.}}
 
 \item{\code{setIp(ip = "127.0.0.1")}}{Set IP and redefine endpoint
-  \subsection{Parameters}{
-  \itemize{
+\subsection{Parameters}{
+\itemize{
 
-  \item{\code{ip} The IP address of the your LINCS REST server, default is \code{127.0.0.1}.}
-  }}
-  \subsection{Return Value}{none}}
+\item{\code{ip} The IP address of the your LINCS REST server, default is \code{127.0.0.1}.}
+}}
+\subsection{Return Value}{none}}
 
 \item{\code{setPort(port = "8080")}}{Set port and redefine endpoint
 \subsection{Parameters}{
@@ -85,7 +94,7 @@ object included in this package and added to resulting document.
 }}
 \subsection{Return Value}{none}}
 
-\item{\code{zvscChem(ncores = 5)}}{Calculate zscores for specific instances relative to mean 
+\item{\code{zvscChem(ncores = 5, cluster = NULL)}}{Calculate zscores for specific instances relative to mean 
 of appropriate vehicle controls on same plate.
 \subsection{Parameters}{
 \itemize{

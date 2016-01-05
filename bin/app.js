@@ -125,6 +125,7 @@ server.get('/LINCS/instances/:id', function(req, res){
  */
 server.get('/LINCS/instances', function(req, res){
     var query = req.params;
+    console.log(query)
     if(query.ids) {
         var f =  has(query, f) ? JSON.parse(query.f) : null;
         lincs.get(JSON.parse(query.ids), f, function(err, data) {
@@ -163,7 +164,7 @@ var has = function(o, f) {
  * @api {POST} /LINCS/instances/distil_id data by distil_id (multi) 
  * @apiName distilIdsData
  * @apiGroup LINCS
- * @apiDescription Fetch metadata for given instance by distil_id.  We use POST
+ * @apiDescription Fetch data for given instances by distil_id.  We use POST
  * here because keys are long and could quickly exceed GET query string limits. 
  * The same data can be achieved with the /LINCS/instances GET endpoint using the 'q'
  * parameter, but that may fail with large numbers of distil_ids due to query 
