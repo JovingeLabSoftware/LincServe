@@ -98,7 +98,7 @@
     "title": "data by distil_id (multi)",
     "name": "distilIdsData",
     "group": "LINCS",
-    "description": "<p>Fetch metadata for given instance by distil_id.  We use POST here because keys are long and could quickly exceed GET query string limits. The same data can be achieved with the /LINCS/instances GET endpoint using the 'q' parameter, but that may fail with large numbers of distil_ids due to query string length limits imposed by many clients.</p> ",
+    "description": "<p>Fetch data for given instances by distil_id.  We use POST here because keys are long and could quickly exceed GET query string limits. The same data can be achieved with the /LINCS/instances GET endpoint using the 'q' parameter, but that may fail with large numbers of distil_ids due to query string length limits imposed by many clients.</p> ",
     "parameter": {
       "fields": {
         "Parameter": [

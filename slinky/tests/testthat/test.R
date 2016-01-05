@@ -24,11 +24,27 @@ test_that("Slinky object can be created", {
   expect_equal(sl$.port, "8080")
 })
 
-context("Score calculation")
-test_that("Several instances can be loaded", {
+context("Instance data")
+test_that("Data from several instances can be retrieved", {
   ids <- c( "CPC005_A375_6H_X1_B3_DUO52HI53LO:K06", "CPC005_A375_6H_X2_B3_DUO52HI53LO:K06", "CPC005_A375_6H_X3_B3_DUO52HI53LO:K06")
   data <- sl$getInstanceData(ids)
   expect_equal(ncol(data), 3)
+})
+
+test_that("An entire instance can be retrieved", {
+  ids <- c( "CPC005_A375_6H_X1_B3_DUO52HI53LO:K06")
+  data <- sl$getInstance(ids)
+  expect_equal(length(data[[1]]), 7)
+})
+
+test_that("Data can be appended to an instance", {
+  ids <- c( "CPC005_A375_6H_X1_B3_DUO52HI53LO:K06")
+  data <- sl$getInstance(ids)[[1]]
+  test <- unlist(data$data) * 1000
+  sl$append(ids[1], test, "appendtest")
+  check <- sl$getInstance(ids)
+  expect_equal(length(check[[1]]), 7)
+  expect_equal(unlist(check[[1]]$appendtest)[1], 11049.5)
 })
 
 
@@ -41,11 +57,12 @@ test_that("Data can be retrieved by query", {
 })
 
 test_that("Entire plate of metadata can be retrieved", {
+  skip("skipped")
   q = list(det_plate = 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO');
-
+  
   # note use of field selector...
   f = c("data", "metadata.distil_id", "metadata.det_plate", "metadata.pert_desc");
-
+  
   if(prof) { 
     print(profvis({
       data <- sl$query(q, f)

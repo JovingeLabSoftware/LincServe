@@ -125,7 +125,6 @@ server.get('/LINCS/instances/:id', function(req, res){
  */
 server.get('/LINCS/instances', function(req, res){
     var query = req.params;
-    console.log(query)
     if(query.ids) {
         var f =  has(query, f) ? JSON.parse(query.f) : null;
         lincs.get(JSON.parse(query.ids), f, function(err, data) {
@@ -207,45 +206,6 @@ server.post('/LINCS/instances/distil_id', function(req, res){
 
 
 
-/**
- * @api {POST} /LINCS/pert Create a perturbation data document
- * @apiName createPerturbation
- * @apiGroup LINCS
- * @apiDescription Creates a data document for a particular perturbation &
- *                 calculation method
- * 
- * @apiParam {String} perturbagen name of perturbagen
- * @apiParam {Numeric} dose dose (unitless)
- * @apiParam {Numeric} duration duration (unitless)
- * @apiParam {String} cell cell line used
- * @apiParam {String} method calculation method used, e.g. "zsvc_plate"
- * @apiParam {Boolean} gold is this a gold signature score?
- * @apiParam {String[]} gene_ids from lincs
- * @apiParam {Numeric[]} data the scores (one per gene)
- *
- * @apiSuccess {String} Id of created object
- * @apiSuccessExample Success-Response: 
- * HTTP/1.1 201 Created
- * {
- *  id: 1
- * }
- */
-server.post('/LINCS/pert', function(req, res) {
-    if(!checkParams(req.params, ['perturbagen', 'dose', 'duration', 'cell',
-                          'method', 'gold', 'gene_ids', 'data'])) {
-        res.send(400, "Creating pert document requires specification of " +
-                      "perturbagen, dose, cell, method, gold, gene_ids, data")                      
-    } else {
-        lincs.savePert(req.params, function(err, data) {
-            if(err) {
-                res.send(400, err);
-            } else {
-                res.send(200, data);
-            }
-        });
-    }
-});
-
                                            
 /**
  * @api {POST} /LINCS/instances Save instance data to server 
@@ -271,12 +231,11 @@ server.post('/LINCS/instances', function(req, res){
         res.send(400, "Creating instance document requires POSTing the following " +
                       "parameters: id, gene_ids, data, metadata, type"); 
     } else {
-        var doc = {gene_ids: req.params.gene_ids, 
-                   metadata: req.params.metadata,
-                   data: req.params.data,
-                   type: req.params.type,
-                   gold: req.params.gold};
-
+        console.log(Object.keys(req.params))
+        var doc = {};
+        Object.keys(req.params).forEach(function(k) {
+            doc[k] = req.params[k];
+        });
         lincs.saveInstance(req.params.id, doc, function(err, data) {
             if(err) {
                 res.send(400, err);
