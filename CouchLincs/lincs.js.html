@@ -64,6 +64,7 @@ var LINCS = function () {
     _bucket.connectionTimeout = 5000;
     _bucket.operationTimeout = 5000;
   });
+  // this seems to now have no effect.
   var n1ql_url = "http://" + config.couchdb.ip + ":8093";
   var _n1ql = _couchbase.N1qlQuery;
   _bucket.enableN1ql([n1ql_url]);
@@ -265,9 +266,10 @@ LINCS.prototype._prepare = function(select, where, skip, limit) {
 */
 LINCS.prototype._whereStmt = function(field, val) {
   var op, rightside, leftside;
+  val = [].concat(val);
 
   // right side
-  if(typeof(val) == "object") {
+  if(val.length > 1) {
     op = "IN";
     if(field == "pert_desc") {
       rightside = JSON.stringify(val.map(function(v) {
@@ -277,6 +279,7 @@ LINCS.prototype._whereStmt = function(field, val) {
       rightside = JSON.stringify(val);
     }
   } else {
+    val = val[0];
     op = "=";
     if(field == "metadata.pert_desc") {
       rightside = JSON.stringify(val.toLowerCase());
@@ -326,7 +329,7 @@ module.exports = exports = new LINCS();
 <br class="clear">
 
 <footer>
-    Documentation generated at Wed Dec 30 2015 21:45:01 GMT+0000 (UTC)
+    Documentation generated at Tue Jan 05 2016 19:57:25 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>
