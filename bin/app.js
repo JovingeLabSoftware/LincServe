@@ -227,7 +227,7 @@ server.post('/LINCS/instances/distil_id', function(req, res){
  * }
  */
 server.post('/LINCS/instances', function(req, res){
-    if(!checkParams(req.params, ['id', 'gene_ids', 'metadata', 'data', 'type'])) {
+    if(!checkParams(req.params, ['id', 'gene_ids', 'metadata', 'data', 'doctype'])) {
         res.send(400, "Creating instance document requires POSTing the following " +
                       "parameters: id, gene_ids, data, metadata, type"); 
     } else {
