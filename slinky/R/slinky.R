@@ -214,19 +214,9 @@ Slinky$methods(calc = function(filter = NULL, cores = NULL, cluster = NULL) {
   
   foreach (j = chunks) %dopar% {
     for (p in j)  {
-#       tryCatch(expr = {
-#         plate_data <- .self$query(q = list(det_plate = p))
-#         .self$.zspc(plate_data)
-#         .self$.zsvc(plate_data)
-#       }, error = function(e) {
-#         .self$.log("error", paste("Error computing scores for plate", p))
-#       })
-      
       plate_data <- .self$query(q = list(det_plate = p))
       .self$.zspc(plate_data)
       .self$.zsvc(plate_data)
-      
-      
     }
   }
 
