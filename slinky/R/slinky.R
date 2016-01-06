@@ -182,13 +182,19 @@ Slinky$methods(query = function(q, f=NA, l=NA, s=NA) {
 })
 
 
-Slinky$methods(calc = function(method, filter = NULL, cores = NULL, 
-                               cluster = NULL) {
-  # select applicable plates and/or samples based on method and filter
-  # chunk and distribute to cluster if specified
-  #   ... calculate, e.g. .self$.zsvc(data, metadat, .self)
-  # save to database
+Slinky$methods(calc = function(filter = NULL, cores = NULL, cluster = NULL) {
+  "Calculate zscores and stores them in the document store. Future versions will 
+   allow users to specify a \\code{filter} statement to only compute a subset of
+   scores
+  \\subsection{Parameters}{
+  \\itemize{
+  \\item{\\code{cluster} An optional cluster object to use for calculations. 
+  Each node must have this package installed on it.}
+  }}
+  \\subsection{Return Value}{None.  Called for side effect of populating 
+  document store with zscores}"
 
+  
   # TODO: allow for some filtering options -- compute for all 
   if(!exists('metadata')) {
     data("metadata")
@@ -201,14 +207,32 @@ Slinky$methods(calc = function(method, filter = NULL, cores = NULL,
   # plate at the same time; then we only pull the plate data once
   plates <- unique(metadata$det_plate)
   
-  # check parallel back end here...
-  for (p in plates) {
-    plate_data <- .self$query(q = list(det_plate = p))
-    # .self$.zspc(plate_data)
-    .self$.zsvc(plate_data)
-    
+  if (is.null(cores) & is.null(cluster)) {
+    message("Running calculations serially. Specify cores or cluster to run in parallel...")
+  } else if (!is.null(cluster)) {
+    if (!("cluster" %in% class(cluster))) stop('Cluster must be created by snow library...')
+    registerDoSNOW(cluster)
+    clusterCall(cluster, function() library(slinky))
+    clusterExport(cluster, list = c('.self', 'plates'), envir=environment())
+  } else if (!is.null(cores)) {
+    registerDoMC(cores)
   }
   
+  if (getDoParWorkers() > 1) {
+    chunks <- split(plates, cut(seq_along(plates), getDoParWorkers()))
+  } else {
+    chunks <- list(plates)
+    message('Processing serially')
+  }
+  
+  foreach (j = chunks) %dopar% {
+    for (p in j)  {
+      plate_data <- .self$query(q = list(det_plate = p))
+      .self$.zspc(plate_data)
+      .self$.zsvc(plate_data)
+    }
+  }
+
 })
 
 
@@ -225,7 +249,7 @@ Slinky$methods(.zspc = function(plate_data) {
   for (i in 1:nrow(plate_data$metadata)) {
     if (grepl('^trt', plate_data$metadata$pert_type[i]) & plate_data$metadata$pert_desc[i] != '-666') {
       if (.self$append(id = plate_data$metadata$distil_id[i], data = norm_exprs[i, rownames(plate_data$data)], type = "ZSPC")) {
-        .self$.log("info", paste("OK saved ZSPC scores for", plate_data$metadata$distil_id[i]))        
+        .self$.log("info", paste("OK saved ZSPC scores for", plate_data$metadata$distil_id[i]))
       } else {
         .self$.log("error", paste("ERR failed to save ZSPC scores for", plate_data$metadata$distil_id[i]))
       }
@@ -234,7 +258,7 @@ Slinky$methods(.zspc = function(plate_data) {
 })
 
 
-Slinky$methods(.zsvc = function(plate_data) {
+Slinky$methods(.zsvc = function(plate_data, .self) {
 
   # these are the two types of controls we are interested in using
   ct_types <- c('ctl_vector', 'ctl_vehicle')
