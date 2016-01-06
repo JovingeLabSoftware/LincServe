@@ -34,40 +34,50 @@ Default is \code{all}.}
 \section{Methods}{
 
 \describe{
-\item{\code{ZbyPlate(id, ...)}}{Calculate zscores for specific instance relative to mean 
-of appropriate vehicle controls on same plate.
+\item{\code{append(id, data, type)}}{Append data to an instance.  DATA MUST HAVE THE SAME NUMBER OF ROWS AS PRE-EXISTING
+ gene_ids, AND BE IN THE SAME ORDER! 
 \subsection{Parameters}{
 \itemize{
-\item{\code{id} Id of instance for which scores are desired.}
+\item{\code{id} The distil_id of the doc to which to append.}
+\item{\code{data} The data to append.}
+\item{\code{type} The type of data.  This will be the name of the new top level field to which 
+      the data is saved.  E.g. 'zsvc' or 'zspc'}
 }}
-\subsection{Return Value}{Vector containing robust z-scores for each gene.}}
+\subsection{Return Value}{List with metadata and data (gene expression) components}}
 
-\item{\code{calc(method = NULL, cores = NULL, cluster = NULL)}}{Calculate zscores and stores them in the document store.
+\item{\code{calc(filter = NULL, cores = NULL, cluster = NULL)}}{Calculate zscores and stores them in the document store. Future versions will 
+ allow users to specify a \code{filter} statement to only compute a subset of
+ scores.
 \subsection{Parameters}{
 \itemize{
-\item{\code{cluster} An optional cluster object to use for calculations. 
-Each node must have this package installed on it.}
+\item{\code{filter} TODO: implement this.}
+\item{\code{cores} Optional: an integer specifying the number of cores to parallelize calculations over with the \code{foreach} back end. This value is passed to the \code{doMC::registerDoMC} function for parallelization with \code{foreach}.}
+\item{\code{cluster} Optional: a cluster object created with \code{snow::makeCluster} to parallelize calculations. The \code{cluster} object is passed to the \code{doSNOW::registerDoSNOW} function for parallelization with \code{foreach}.}
 }}
 \subsection{Return Value}{None.  Called for side effect of populating 
 document store with zscores}}
 
-\item{\code{getInstanceData(ids)}}{Retrieve data for multiple distil_ids. Uses the POST interface of the 
+\item{\code{getInstance(ids)}}{Retrieve instances in their entirety including all data and metadata.
+Uses the POST interface of the REST API to avoid query string length 
+restriction for GET queries, enabling retrieval of large(r) datasets.
+\subsection{Parameters}{
+\itemize{
+\item{\code{ids} distil_ids for which data is desired.}
+}
+}}
+\subsection{Return Value}{Instances in list format}}
+
+\item{\code{getInstanceData(ids, type = "q2norm")}}{Retrieve instance data for multiple distil_ids. Uses the POST interface of the 
 REST API to avoid query string length restriction for GET queries, enabling
 retrieval of large(r) datasets.
 \subsection{Parameters}{
 \itemize{
 \item{\code{ids} distil_ids for which data is desired.}
+\item{\code{type} which data type you want to return.  Default is
+                    q2norm, other options may include zsvc and zspc
+}
 }}
-\subsection{Return Value}{List of items}}
-
-\item{\code{getPlateControls(id, endpoint = "/controls", control_type = "ctl_vehicle")}}{Fetch normalized expression data for control samples from same plate as id
-and treated only with the vehicle used for sample id.
-\subsection{Parameters}{
-\itemize{
-\item{\code{id} Id of instance for which control data is desired.}
-}}
-\subsection{Return Value}{dataframe containing normalized gene expression
-for controls.}}
+\subsection{Return Value}{Dataframe containing the requested data}}
 
 \item{\code{loadLevel2(gctxfile = "/mnt/lincs/q2norm_n1328098x22268.gctx", col)}}{Load data for specified column(s) from hdf5 formatted file (.gctx) from LINCS Fetch 
 into your document store via RESTful interface.  Metadata will be matched from metadata
@@ -78,6 +88,22 @@ object included in this package and added to resulting document.
 \item{\code{col} Column(s) of data to load from gctx file.}
 }}
 \subsection{Return Value}{id(s) of resulting documents in doc store.}}
+
+\item{\code{query(q, f = NA, l = NA, s = NA)}}{Retrieve metadata using the query interface of the REST API. 
+\subsection{Parameters}{
+\itemize{
+\item{\code{q} query terms as field=value pairs in the form of a list.  Value
+       may be a single value or a vector of values.  Fields are assumed to be 
+       within the metadata slot of the data, so there is no need to prefix fields 
+       with 'metadata.', although it is allowed.  This also means query is restricted
+       to the metadata (i.e. you cannot query based on gene_ids or doctype).}
+\item{\code{f} vector of fields to return.  Defaults to '*'.  Note here subfields
+                 (e.g. metdata.pert_desc) must be explicit as top level fields (e.g. data)
+                 can also be returned
+\item{\code{l} limit, for paging (number of documents to return, default is everything)
+\item{\code{s} skip, for paging (default in 0)
+}}
+\subsection{Return Value}{List with metadata and data (gene expression) components}}
 
 \item{\code{setIp(ip = "127.0.0.1")}}{Set IP and redefine endpoint
 \subsection{Parameters}{
@@ -93,14 +119,6 @@ object included in this package and added to resulting document.
 \item{\code{port} The port of the your LINCS REST server, default is \code{8080}.}
 }}
 \subsection{Return Value}{none}}
-
-\item{\code{zvscChem(ncores = 5, cluster = NULL)}}{Calculate zscores for specific instances relative to mean 
-of appropriate vehicle controls on same plate.
-\subsection{Parameters}{
-\itemize{
-\item{\code{id} Ids of instance for which scores are desired. Should be monotonically increasing.}
-}}
-\subsection{Return Value}{None.}}
 }}
 \examples{
 lincs <- Slinky$new()

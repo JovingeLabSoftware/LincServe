@@ -34,7 +34,10 @@ test_that("Data from several instances can be retrieved", {
 test_that("An entire instance can be retrieved", {
   ids <- c( "CPC005_A375_6H_X1_B3_DUO52HI53LO:K06")
   data <- sl$getInstance(ids)
-  expect_equal(length(data[[1]]), 7)
+  minimal_instance_fields <- c("data", "doctype", "gene_ids", "id", "metadata", 
+                               "timestamp", "type")
+  base_fields <- intersect(minimal_instance_fields, names(data[[1]]))
+  expect_equal(minimal_instance_fields, base_fields)
 })
 
 test_that("Data can be appended to an instance", {
@@ -43,7 +46,7 @@ test_that("Data can be appended to an instance", {
   test <- unlist(data$data) * 1000
   sl$append(ids[1], test, "appendtest")
   check <- sl$getInstance(ids)
-  expect_equal(length(check[[1]]), 7)
+  expect_true("appendtest" %in% names(check[[1]]))
   expect_equal(unlist(check[[1]]$appendtest)[1], 11049.5)
 })
 
@@ -57,24 +60,14 @@ test_that("Data can be retrieved by query", {
 })
 
 test_that("Entire plate of metadata can be retrieved", {
-  # skip("skipped")
   q = list(det_plate = 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO');
-  
-  # note use of field selector...
-  # f = c("data", "metadata.distil_id", "metadata.det_plate", "metadata.pert_desc");
-  
   plate_dat <- sl$query(q)
-  
-#   if(prof) { 
-#     print(profvis({
-#       data <- sl$query(q, f)
-#     }))
-#   } else if (syst) {
-#     cat("\n"); print(system.time(data <- sl$query(q, f))); cat("\n")
-#     
-#   }  else {
-#     data <- sl$query(q, f)
-#   }
   expect_equal(as.character(plate_dat$metadata$pert_desc[191]), "GR-103")
 })
 
+
+context("Z-scoring")
+test_that("ZSPC scores can be calculated", {
+  skip("Skipping...")
+  # TODO
+})

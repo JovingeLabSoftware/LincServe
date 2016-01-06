@@ -161,20 +161,6 @@ Slinky$methods(query = function(q, f=NA, l=NA, s=NA) {
   }
   metadata <- do.call(rbind, lapply(res, fm, nm = names))
 
-  # this seems to be resulting in errors with strange metadata returned...  
-#   for(i in 1:length(res)) {
-#     row = NULL;
-#     for(n in names(res[[i]])) {
-#         if (n != "gene_ids" && n != "data") {
-#         row = c(row, .self$.extract(res[[i]], n))
-#       }
-#     }
-#     metadata <- rbind(metadata, row)
-#   }
-  # metadata <- as.data.frame(metadata, stringsAsFactors=F) # handle single row case
-  # rownames(metadata) <- NULL
-  # colnames(metadata) <- names
-  
   data <- as.data.frame(data)
   rownames(data) <- ids
   colnames(data) <- metadata$distil_id
@@ -185,11 +171,12 @@ Slinky$methods(query = function(q, f=NA, l=NA, s=NA) {
 Slinky$methods(calc = function(filter = NULL, cores = NULL, cluster = NULL) {
   "Calculate zscores and stores them in the document store. Future versions will 
    allow users to specify a \\code{filter} statement to only compute a subset of
-   scores
+   scores.
   \\subsection{Parameters}{
   \\itemize{
-  \\item{\\code{cluster} An optional cluster object to use for calculations. 
-  Each node must have this package installed on it.}
+  \\item{\\code{filter} TODO: implement this.}
+  \\item{\\code{cores} Optional: an integer specifying the number of cores to parallelize calculations over with the \\code{foreach} back end. This value is passed to the \\code{doMC::registerDoMC} function for parallelization with \\code{foreach}.}
+  \\item{\\code{cluster} Optional: a cluster object created with \\code{snow::makeCluster} to parallelize calculations. The \\code{cluster} object is passed to the \\code{doSNOW::registerDoSNOW} function for parallelization with \\code{foreach}.}
   }}
   \\subsection{Return Value}{None.  Called for side effect of populating 
   document store with zscores}"
@@ -227,9 +214,19 @@ Slinky$methods(calc = function(filter = NULL, cores = NULL, cluster = NULL) {
   
   foreach (j = chunks) %dopar% {
     for (p in j)  {
+#       tryCatch(expr = {
+#         plate_data <- .self$query(q = list(det_plate = p))
+#         .self$.zspc(plate_data)
+#         .self$.zsvc(plate_data)
+#       }, error = function(e) {
+#         .self$.log("error", paste("Error computing scores for plate", p))
+#       })
+      
       plate_data <- .self$query(q = list(det_plate = p))
       .self$.zspc(plate_data)
       .self$.zsvc(plate_data)
+      
+      
     }
   }
 
@@ -238,27 +235,28 @@ Slinky$methods(calc = function(filter = NULL, cores = NULL, cluster = NULL) {
 
 Slinky$methods(.zspc = function(plate_data) {
 
-  # compute robust z-scores using all samples on plate
-  # robust z-score description
-  # http://support.lincscloud.org/hc/en-us/articles/202099616-Signature-Generation-and-Analysis-L1000-
-  rbz <- function(x) (x - median(x)) / (mad(x) * 1.4826)
-  norm_exprs <- apply(plate_data$data, MARGIN = 1, FUN = rbz)
-  stopifnot(all(rownames(norm_exprs) == plate_data$metadata$distil_id))
-  
-  # append z-scores for each of our treated samples with known pert_descs
-  for (i in 1:nrow(plate_data$metadata)) {
-    if (grepl('^trt', plate_data$metadata$pert_type[i]) & plate_data$metadata$pert_desc[i] != '-666') {
-      if (.self$append(id = plate_data$metadata$distil_id[i], data = norm_exprs[i, rownames(plate_data$data)], type = "ZSPC")) {
-        .self$.log("info", paste("OK saved ZSPC scores for", plate_data$metadata$distil_id[i]))
-      } else {
-        .self$.log("error", paste("ERR failed to save ZSPC scores for", plate_data$metadata$distil_id[i]))
+    # compute robust z-scores using all samples on plate
+    # robust z-score description
+    # http://support.lincscloud.org/hc/en-us/articles/202099616-Signature-Generation-and-Analysis-L1000-
+    rbz <- function(x) (x - median(x)) / (mad(x) * 1.4826)
+    norm_exprs <- apply(plate_data$data, MARGIN = 1, FUN = rbz)
+    stopifnot(all(rownames(norm_exprs) == plate_data$metadata$distil_id))
+    
+    # append z-scores for each of our treated samples with known pert_descs
+    for (i in 1:nrow(plate_data$metadata)) {
+      if (grepl('^trt', plate_data$metadata$pert_type[i]) & plate_data$metadata$pert_desc[i] != '-666') {
+        if (.self$append(id = plate_data$metadata$distil_id[i], data = norm_exprs[i, rownames(plate_data$data)], type = "ZSPC")) {
+          .self$.log("info", paste("OK saved ZSPC scores for", plate_data$metadata$distil_id[i]))
+        } else {
+          .self$.log("error", paste("ERR failed to save ZSPC scores for", plate_data$metadata$distil_id[i]))
+        }
       }
     }
-  }
+
 })
 
 
-Slinky$methods(.zsvc = function(plate_data, .self) {
+Slinky$methods(.zsvc = function(plate_data) {
 
   # these are the two types of controls we are interested in using
   ct_types <- c('ctl_vector', 'ctl_vehicle')
