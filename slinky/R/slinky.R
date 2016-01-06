@@ -155,36 +155,108 @@ Slinky$methods(query = function(q, f=NA, l=NA, s=NA) {
     return(.self$.extract(x, "data"))
   }
   data <- do.call(cbind, lapply(res, fd))
-  for(i in 1:length(res)) {
-    row = NULL;
-    for(n in names(res[[i]])) {
-      if (n != "gene_ids" && n != "data") {
-        row = c(row, .self$.extract(res[[i]], n))
-      }
-    }
-    metadata <- rbind(metadata, row)
+  
+  fm <- function(x, nm) {
+    as.data.frame(x[nm])
   }
-  metadata <- as.data.frame(metadata, stringsAsFactors=F) # handle single row case
-  colnames(metadata) <- names
+  metadata <- do.call(rbind, lapply(res, fm, nm = names))
+
+  # this seems to be resulting in errors with strange metadata returned...  
+#   for(i in 1:length(res)) {
+#     row = NULL;
+#     for(n in names(res[[i]])) {
+#         if (n != "gene_ids" && n != "data") {
+#         row = c(row, .self$.extract(res[[i]], n))
+#       }
+#     }
+#     metadata <- rbind(metadata, row)
+#   }
+  # metadata <- as.data.frame(metadata, stringsAsFactors=F) # handle single row case
+  # rownames(metadata) <- NULL
+  # colnames(metadata) <- names
+  
   data <- as.data.frame(data)
   rownames(data) <- ids
-
-    return(list(metadata=metadata, data=data))
+  colnames(data) <- metadata$distil_id
+  return(list(metadata=metadata, data=data))
 })
 
 
-Slinky$methods(calc =function(method, filter=NULL, cluster=NULL) {
+Slinky$methods(calc = function(method, filter = NULL, cores = NULL, 
+                               cluster = NULL) {
   # select applicable plates and/or samples based on method and filter
   # chunk and distribute to cluster if specified
   #   ... calculate, e.g. .self$.zsvc(data, metadat, .self)
   # save to database
+
+  # TODO: allow for some filtering options -- compute for all 
+  if(!exists('metadata')) {
+    data("metadata")
+  }
+  
+  # filter for certain plates based on filter statement
+  metadata <- filter(metadata, pert_desc != "-666")
+  
+  # i actually think it would be fastest to compute all z-scores for a single 
+  # plate at the same time; then we only pull the plate data once
+  plates <- unique(metadata$det_plate)
+  
+  # check parallel back end here...
+  for (p in plates) {
+    plate_data <- .self$query(q = list(det_plate = p))
+    # .self$.zspc(plate_data)
+    .self$.zsvc(plate_data)
+    
+  }
+  
 })
 
-# private method providing cluster friendly wrapper including self referential
-# 'this' object
-Slinky$methods(.zsvc =function(data, metadata, this) {
-  # calculate some stuff, referrign to methods of "this" as required
-  # return calculated scores
+
+Slinky$methods(.zspc = function(plate_data) {
+
+  # compute robust z-scores using all samples on plate
+  # robust z-score description
+  # http://support.lincscloud.org/hc/en-us/articles/202099616-Signature-Generation-and-Analysis-L1000-
+  rbz <- function(x) (x - median(x)) / (mad(x) * 1.4826)
+  norm_exprs <- apply(plate_data$data, MARGIN = 1, FUN = rbz)
+  stopifnot(all(rownames(norm_exprs) == plate_data$metadata$distil_id))
+  
+  # append z-scores for each of our treated samples with known pert_descs
+  for (i in 1:nrow(plate_data$metadata)) {
+    if (grepl('^trt', plate_data$metadata$pert_type[i]) & plate_data$metadata$pert_desc[i] != '-666') {
+      if (.self$append(id = plate_data$metadata$distil_id[i], data = norm_exprs[i, rownames(plate_data$data)], type = "ZSPC")) {
+        .self$.log("info", paste("OK saved ZSPC scores for", plate_data$metadata$distil_id[i]))        
+      } else {
+        .self$.log("error", paste("ERR failed to save ZSPC scores for", plate_data$metadata$distil_id[i]))
+      }
+    }
+  }
+})
+
+
+Slinky$methods(.zsvc = function(plate_data) {
+
+  # these are the two types of controls we are interested in using
+  ct_types <- c('ctl_vector', 'ctl_vehicle')
+  ct_sel <- which(plate_data$metadata$pert_type %in% ct_types)
+  
+  # copy eric's original z-score implementation for now
+  if (length(ct_sel)) {
+    ctrl.m <- apply(plate_data$data[, ct_sel], 1, mean)
+    for (i in 1:nrow(plate_data$metadata)) {
+      if (grepl('^trt', plate_data$metadata$pert_type[i]) & plate_data$metadata$pert_desc[i] != '-666') {
+        fc <- log2(plate_data$data[,i] / ctrl.m)
+        fc <- (fc - median(fc)) / mad(fc)
+        if (.self$append(id = plate_data$metadata$distil_id[i], data = fc, type = "ZSVC")) {
+          .self$.log("info", paste("OK saved ZSVC scores for", plate_data$metadata$distil_id[i]))        
+        } else {
+          .self$.log("error", paste("ERR failed to save ZSVC scores for", plate_data$metadata$distil_id[i]))
+        }
+      }
+    }
+  } else {
+    .self$.log("error", paste("No controls found on plate", plate_data$metadata$det_plate[1]))
+  }
 })
 
 

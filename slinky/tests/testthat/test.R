@@ -57,22 +57,24 @@ test_that("Data can be retrieved by query", {
 })
 
 test_that("Entire plate of metadata can be retrieved", {
-  skip("skipped")
+  # skip("skipped")
   q = list(det_plate = 'CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO');
   
   # note use of field selector...
-  f = c("data", "metadata.distil_id", "metadata.det_plate", "metadata.pert_desc");
+  # f = c("data", "metadata.distil_id", "metadata.det_plate", "metadata.pert_desc");
   
-  if(prof) { 
-    print(profvis({
-      data <- sl$query(q, f)
-    }))
-  } else if (syst) {
-    cat("\n"); print(system.time(data <- sl$query(q, f))); cat("\n")
-    
-  }  else {
-    data <- sl$query(q, f)
-  }
-  expect_equal(as.character(data$metadata$pert_desc[191]), "GR-103")
+  plate_dat <- sl$query(q)
+  
+#   if(prof) { 
+#     print(profvis({
+#       data <- sl$query(q, f)
+#     }))
+#   } else if (syst) {
+#     cat("\n"); print(system.time(data <- sl$query(q, f))); cat("\n")
+#     
+#   }  else {
+#     data <- sl$query(q, f)
+#   }
+  expect_equal(as.character(plate_dat$metadata$pert_desc[191]), "GR-103")
 })
 
