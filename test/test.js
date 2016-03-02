@@ -13,7 +13,7 @@ var client = restify.createJsonClient({
 });
 
 //convenience function for formatting API query strings
-var queryString = function(q, f, s, l) {
+var queryString = function(q, f, s, l, c) {
   q = q || null; f = f || null; s 
   = s || null; l = l || null;
   var qs = '';
@@ -21,6 +21,7 @@ var queryString = function(q, f, s, l) {
   qs += (f == null) ? "" : `&f=${JSON.stringify(f)}`;
   qs += (l == null) ? "" : `&l=${l}`;
   qs += (s == null) ? "" : `&s=${s}`;
+  qs += (c == null) ? "" : `&c=${c}`;
   return(qs.slice(1)); // drop leading &.  reduces logic above.
 };
 
@@ -53,7 +54,7 @@ describe('LINCS methods', function() {
                           ['metadata.pert_id'], // fields
                           0,                    // skip
                           1);                   // limit
-    var url = encodeURI(`/LINCS/instances?${qs}`)
+    var url = encodeURI(`/LINCS/instances?${qs}`);
     client.get(url, function(err, req, res, data) {
       if(err) throw(err);
       checkResponse(res);
@@ -82,11 +83,23 @@ describe('LINCS methods', function() {
     });
   });
 
-  it('retrieves data for multiple instances by distil_id', function(done) {
+  it.only('retrieves data for multiple instances by distil_id', function(done) {
     var keys = ["HSF045_HEK293T_48H_X1_B12:H21", "BRAF001_HEK293T_24H_X2_B10:E24"];
     client.post('/LINCS/instances/distil_id', 
                   {ids: keys, fields:["metadata.pert_desc", 
                   "metadata.pert_id"]}, 
+           function(err, req, res, data) {
+      if(err) throw(err);
+      checkResponse(data);
+      assert.equal(data.length, 2);
+      done();
+    });
+  });
+  
+  it('retrieves zsvc data for multiple instances by distil_id', function(done) {
+    var keys = ["HSF045_HEK293T_48H_X1_B12:H21", "BRAF001_HEK293T_24H_X2_B10:E24"];
+    client.post('/LINCS/instances/zsvc', 
+                  {ids: keys}, 
            function(err, req, res, data) {
       if(err) throw(err);
       checkResponse(data);
@@ -116,7 +129,7 @@ describe('LINCS methods', function() {
                             ['metadata.pert_id'], // fields
                             0,                    // skip
                             null);                   // limit
-      var url = encodeURI(`/LINCS/instances?${qs}`)
+      var url = encodeURI(`/LINCS/instances?${qs}`);
       client.get(url, function(err, req, res, data) {
         if (err) {
             throw err;
@@ -154,11 +167,35 @@ describe('LINCS methods', function() {
     });
   });
   
+  it('retrieves a count of all instances with the specified perturbation', function(done) {
+    client.get('/LINCS/instances?cell="SNUC4"&pert="Rottlerin"&dose=9.68&duration=6', function(err, req, res, data) {
+      var qs = queryString({cell_id: "SNUC4",
+                            pert_desc: "Rottlerin",
+                            pert_time: 6,
+                            pert_dose: 9.68
+                           },  // query
+                            ['metadata.pert_id'], // fields
+                            null,                    // skip
+                            null,                    // limit
+                            true);                   // count
+      var url = encodeURI(`/LINCS/instances?${qs}`)
+      client.get(url, function(err, req, res, data) {
+        if (err) {
+            throw err;
+        } else {
+          checkResponse(res);
+          assert.equal(data, 2);
+          done();
+        }
+      });
+    });
+  });
+  
   it('inserts instance document with numerical ID', function(done) {
     client.post('/LINCS/instances', {id: 999999999, metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1],
-                                 type: "test_instance"}, 
+                                 doctype: "test_instance"}, 
     function(err, req, res,id) {
       if (err) {
           throw err;
@@ -174,7 +211,7 @@ describe('LINCS methods', function() {
     client.post('/LINCS/instances', {id: 'one', metadata: {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2}, 
                                  gene_ids: ['GENE1', 'GENE2', 'GENE3'],
                                  data: [12, 3, 4.1],
-                                 type: "test_instance"}, 
+                                 doctype: "test_instance"}, 
     function(err, req, res, id) {
 
       if (err) {
@@ -197,24 +234,6 @@ describe('LINCS methods', function() {
     });
   });
 
-
-  it('inserts zscore document', function(done) {
-    client.post('/LINCS/pert', {cell: "A375", perturbagen: "BRD-K73037408", duration: 24, dose: 2,  
-                                      gene_ids: ['GENE1', 'GENE2', 'GENE3'],
-                                      data: [12, 3, 4.1],
-                                      type: "test_sig",
-                                      method: "test",
-                                      gold: false}, 
-    function(err, req, res, id) {
-      if (err) {
-          throw err;
-      } else {
-          checkResponse(res);
-          assert.ok(id);
-          done();
-      }
-    });
-  });
 
   it('returns an informative error if required pert fields not provided.', function(done) {
     client.post('/LINCS/pert', {cell: "A375", perturbagen: "BRD-K73037408", dose: 2,  

@@ -23,7 +23,7 @@
 <label for="nav-trigger" class="overlay"></label>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#get">get</a></li><li data-type='method'><a href="LINCS.html#instanceQuery">instanceQuery</a></li><li data-type='method'><a href="LINCS.html#saveInstance">saveInstance</a></li><li data-type='method'><a href="LINCS.html#savePert">savePert</a></li></ul></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="LINCS.html">LINCS</a><ul class='methods'><li data-type='method'><a href="LINCS.html#get">get</a></li><li data-type='method'><a href="LINCS.html#instanceCount">instanceCount</a></li><li data-type='method'><a href="LINCS.html#instanceQuery">instanceQuery</a></li><li data-type='method'><a href="LINCS.html#saveInstance">saveInstance</a></li><li data-type='method'><a href="LINCS.html#savePert">savePert</a></li></ul></li></ul>
 </nav>
 
 <div id="main">
@@ -333,6 +333,166 @@
     <h5>Example</h5>
     
     <pre class="prettyprint"><code>lincs.get("1", "metadata.pert_desc").then(function(x) { console.log(x) });</code></pre>
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="instanceCount"><span class="type-signature"></span>instanceCount<span class="signature">(query, cb)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Retrieve instance COUNT  by query parameters.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>query</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>JSON formatted field/value pairs.  Value can be an
+                array of possible values.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cb</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Call back to be called upon completion of async call.  Optional--can use promises instead.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line99">line 99</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>lincs.instanceQuery({"metadata.pert_desc": "Clindamycin"}).then(function(x) { console.log(x) });</code></pre>
 
 
 
@@ -718,7 +878,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line134">line 134</a>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line158">line 158</a>
     </li></ul></dd>
     
 
@@ -873,7 +1033,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line101">line 101</a>
+        <a href="lincs.js.html">lincs.js</a>, <a href="lincs.js.html#line125">line 125</a>
     </li></ul></dd>
     
 
@@ -917,7 +1077,7 @@
 <br class="clear">
 
 <footer>
-    Documentation generated at Tue Jan 05 2016 19:57:25 GMT+0000 (UTC)
+    Documentation generated at Wed Feb 24 2016 15:50:52 GMT+0000 (UTC)
 </footer>
 
 <script>prettyPrint();</script>

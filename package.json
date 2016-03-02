@@ -7,18 +7,18 @@
     "test": "mocha",
     "start": "forever start bin/app.js --killSignal=SIGTERM -c nodemon --exitcrash",
     "docs": "jsdoc --configure .jsdoc.json --verbose; apidoc -i bin/ -o docs/api/",
-    "doc_deploy": "cp -R docs/api/* ../CouchLincsDoc/CouchLincs/api; cp -R docs/CouchLincs/1.0.0/* ../CouchLincsDoc/CouchLincs/;"
+    "doc_deploy": "cp -R docs/api/* ../LincServeDoc/LincServe/api; cp -R docs/LincServe/1.0.0/* ../LincServeDoc/LincServe/;"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/JovingeLabSoftware/CouchLincs.git"
+    "url": "https://github.com/JovingeLabSoftware/LincServe/LincsServe.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/JovingeLabSoftware/CouchLincs/issues"
+    "url": "https://github.com/JovingeLabSoftware/LincServe/issues"
   },
-  "homepage": "https://github.com/JovingeLabSoftware/CouchLincs",
+  "homepage": "https://github.com/JovingeLabSoftware/LincServe",
   "dependencies": {
     "couchbase": "^2.1.2",
     "restify": "^4.0.3",

@@ -78,6 +78,8 @@ server.get('/LINCS/instances/:id', function(req, res){
     });
 });
 
+
+
 /**
  * @api {GET} /LINCS/instances Query instances 
  * @apiName instanceQuery
@@ -94,6 +96,8 @@ server.get('/LINCS/instances/:id', function(req, res){
  *                      Note that parent field must be explicitly declared 
  *                      (e.g. metadata), so that top level slots (data, gene_ids)
  *                      can be requested and returned.
+ * @apiParam {Boolean} c Should just a count of matching records be returned
+ *                     (true / false)
  * @apiParam {Number} s Number of records to skip (for paging)
  * @apiParam {Number} l Number of records to return (limit)
  * @apiExample {curl} Example usage:
@@ -124,9 +128,9 @@ server.get('/LINCS/instances/:id', function(req, res){
  * }   
  */
 server.get('/LINCS/instances', function(req, res){
-    var query = req.params;
+    var query = req.params, f;
     if(query.ids) {
-        var f =  has(query, f) ? JSON.parse(query.f) : null;
+        f =  has(query, f) ? JSON.parse(query.f) : null;
         lincs.get(JSON.parse(query.ids), f, function(err, data) {
             if(err) {
                 res.send(400, err);
@@ -135,29 +139,40 @@ server.get('/LINCS/instances', function(req, res){
             }
         });
     } else if(query.q) {
-        var f = query.f ? JSON.parse(query.f) : null;
+        f = query.f ? JSON.parse(query.f) : null;
         var s = query.s ? JSON.parse(query.s) : null;
         var l = query.l ? JSON.parse(query.l) : null;
-        lincs.instanceQuery(JSON.parse(query.q), f, s, l, function(err, data) {
-            if(err) {
-                res.send(400, err);
-            } else {
-                res.send(200, data);
-            }
-        });
+        if(query.c) {
+            lincs.instanceCount(JSON.parse(query.q), function(err, data) {
+                if(err) {
+                    res.send(400, err);
+                } else {
+                    res.send(200, data);
+                }
+            });
+        } else {
+            lincs.instanceQuery(JSON.parse(query.q), f, s, l, function(err, data) {
+                if(err) {
+                    res.send(400, err);
+                } else {
+                    res.send(200, data);
+                }
+            });
+        }
     } else {
         res.send(400, "ERROR: You must provide either ids (array of primary ids)" +
-                        " or q (query in form of field value pairs as JSON)");
+                " or q (query in form of field value pairs as JSON)");
+
     }
 });
 
 var has = function(o, f) {
     if(typeof(o) == "string") {
-      return(typeof(JSON.parse(o).f) != "undefined")
+      return(typeof(JSON.parse(o).f) != "undefined");
     } else {
-      return(typeof(o.f) != "undefined")
+      return(typeof(o.f) != "undefined");
     }
-}
+};
 
 /**
  * @api {POST} /LINCS/instances/distil_id data by distil_id (multi) 
@@ -193,7 +208,58 @@ var has = function(o, f) {
 server.post('/LINCS/instances/distil_id', function(req, res){
     var ids = req.params.ids;
     var fields = req.params.fields || "*";
-    lincs.instanceQuery({"distil_id": ids}, fields, null, null, function(err, data) {
+    var jobs = [];
+    for(var i=0; i < Math.ceil(ids.length/15); i++) {
+        var jj = [];
+        for(var j = i*15; j < Math.min(ids.length, (i+1)*15); j++ ) {
+            jj =jj.concat(ids[j]);
+        }
+        jobs = jobs.concat([jj])
+    }
+    Q.all(jobs.map(function(x) {
+        return(lincs.instanceQuery({"distil_id": x}, fields, null, null));
+    })).then(function(data) {
+        var collated = [];
+        data.forEach(function(x) { collated = collated.concat(x)});
+        res.send(200, collated);
+    }).catch(function(err) {
+            res.send(400, err);
+    });
+});
+
+/**
+ * @api {POST} /LINCS/instances/zsvc/distil_id zsvc data by distil_id (multi) 
+ * @apiName distilIdsData
+ * @apiGroup LINCS
+ * @apiDescription Fetch zsvc data for given instances by distil_id.  We use POST
+ * here because keys are long and could quickly exceed GET query string limits. 
+ * The same data can be achieved with the /LINCS/instances GET endpoint using the 'q'
+ * parameter, but that may fail with large numbers of distil_ids due to query 
+ * string length limits imposed by many clients.
+ * @apiParam {string[]} ids distilIds of instances
+ * @apiExample {curl} Example usage:
+ *  curl -d '{"ids": ["CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05", \
+ *        "CPC014_VCAP_6H_X2_F1B3_DUO52HI53LO:P05"]}' \
+ *        localhost:8080/LINCS/instances/distil_id \
+ *        -H "Content-Type: application/json"  
+ *
+ * @apiSuccess {Object} data docs in JSON format
+ * @apiSuccessExample Success-Response: 
+ * HTTP/1.1 200 OK
+ * Content-Type: application/json
+ * [  
+ * {
+ *    "data": { ... }
+ *    "gene_ids": { ... }
+ *    "metadata": { ... },
+ *    "id": "312240"
+ *  } 
+ * ... // truncated
+ * ]
+ */
+server.post('/LINCS/instances/zsvc', function(req, res){
+    var ids = req.params.ids;
+    lincs.zsvc(ids, function(err, data) {
         if(err) {
             res.send(400, err);
         } else {
@@ -201,7 +267,6 @@ server.post('/LINCS/instances/distil_id', function(req, res){
         }
     });
 });
-
 
 
 
@@ -229,9 +294,8 @@ server.post('/LINCS/instances/distil_id', function(req, res){
 server.post('/LINCS/instances', function(req, res){
     if(!checkParams(req.params, ['id', 'gene_ids', 'metadata', 'data', 'doctype'])) {
         res.send(400, "Creating instance document requires POSTing the following " +
-                      "parameters: id, gene_ids, data, metadata, type"); 
+                      "parameters: id, gene_ids, data, metadata, doctype"); 
     } else {
-        console.log(Object.keys(req.params))
         var doc = {};
         Object.keys(req.params).forEach(function(k) {
             doc[k] = req.params[k];

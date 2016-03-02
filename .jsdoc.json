@@ -4,7 +4,7 @@
         "dictionaries": ["jsdoc"]
     },
     "source": {
-        "include": ["node_modules/lincs/lib", "lib", "package.json", "README.md"],
+        "include": ["node_modules/couchlincs/lib", "lib", "package.json", "README.md"],
         "includePattern": ".js$",
         "excludePattern": ""
     },
